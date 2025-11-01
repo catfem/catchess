@@ -60,9 +60,13 @@ export const useGameStore = create<GameStore>((set, get) => ({
     const { chess, gameMode, engineSettings, moveHistory } = get();
     
     try {
+      // Capture the FEN before making the move
+      const fenBeforeMove = chess.fen();
+      
       const move = chess.move({ from, to, promotion });
       if (!move) return false;
 
+      const fenAfterMove = chess.fen();
       const newHistory = [...moveHistory];
       const moveAnalysis: MoveAnalysis = {
         move: move.san,
@@ -72,37 +76,50 @@ export const useGameStore = create<GameStore>((set, get) => ({
         eval: 0,
         label: 'good',
         cp: 0,
-        fen: chess.fen(),
+        fen: fenAfterMove,
         moveNumber: Math.floor(chess.moveNumber()),
         color: move.color,
       };
 
-      if (engineSettings.enabled && gameMode !== 'vs-player-local') {
-        const result = await stockfishEngine.getBestMove(chess.fen(), engineSettings.depth);
-        moveAnalysis.eval = result.eval;
-        moveAnalysis.cp = result.cp || 0;
-        moveAnalysis.mate = result.mate;
-        moveAnalysis.bestMove = result.bestMove;
-
-        if (newHistory.length > 0) {
-          const prevEval = newHistory[newHistory.length - 1].eval;
-          moveAnalysis.label = labelMove(
-            move.from + move.to,
-            result.bestMove,
-            moveAnalysis.eval,
-            prevEval,
-            chess.moveNumber() <= 10
-          );
-        }
-      }
-
       newHistory.push(moveAnalysis);
+      const moveIndex = newHistory.length - 1;
       
+      // Update UI immediately with the move (before analysis)
       set({
-        chess: new Chess(chess.fen()),
+        chess: new Chess(fenAfterMove),
         moveHistory: newHistory,
-        currentMoveIndex: newHistory.length - 1,
+        currentMoveIndex: moveIndex,
       });
+
+      // Perform analysis asynchronously after showing the move
+      if (engineSettings.enabled && gameMode !== 'vs-player-local') {
+        // Get best move before the user's move was played
+        const beforeResult = await stockfishEngine.getBestMove(fenBeforeMove, engineSettings.depth);
+        
+        // Get evaluation after the user's move
+        const afterResult = await stockfishEngine.getBestMove(fenAfterMove, engineSettings.depth);
+        
+        // Update the move analysis
+        const updatedHistory = [...get().moveHistory];
+        const prevEval = moveIndex > 0 ? updatedHistory[moveIndex - 1].eval : 0;
+        
+        updatedHistory[moveIndex].eval = afterResult.eval;
+        updatedHistory[moveIndex].cp = afterResult.cp || 0;
+        updatedHistory[moveIndex].mate = afterResult.mate;
+        updatedHistory[moveIndex].bestMove = beforeResult.bestMove;
+        updatedHistory[moveIndex].label = labelMove(
+          move.from + move.to,
+          beforeResult.bestMove,
+          afterResult.eval,
+          prevEval,
+          chess.moveNumber() <= 10,
+          move.color
+        );
+
+        set({
+          moveHistory: updatedHistory,
+        });
+      }
 
       if (gameMode === 'vs-engine' && chess.turn() !== get().playerColor[0]) {
         setTimeout(() => get().makeEngineMove(), 500);
@@ -159,7 +176,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
             result.bestMove,
             afterResult.eval,
             prevEval,
-            tempChess.moveNumber() <= 10
+            tempChess.moveNumber() <= 10,
+            move.color
           ),
           cp: afterResult.cp || 0,
           mate: afterResult.mate,

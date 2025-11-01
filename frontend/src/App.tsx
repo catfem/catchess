@@ -74,9 +74,19 @@ function App() {
                   <span className="text-gray-500 dark:text-gray-400 text-xs">- Optimal choice</span>
                 </div>
                 <div className="flex items-center space-x-2">
+                  <span className="text-[#2ecc71] font-bold">○</span>
+                  <span className="dark:text-white">Good Move</span>
+                  <span className="text-gray-500 dark:text-gray-400 text-xs">- Solid play</span>
+                </div>
+                <div className="flex items-center space-x-2">
                   <span className="text-[#f39c12] font-bold">📖</span>
                   <span className="dark:text-white">Book Move</span>
                   <span className="text-gray-500 dark:text-gray-400 text-xs">- Theory</span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <span className="text-[#f1c40f] font-bold">?!</span>
+                  <span className="dark:text-white">Inaccuracy</span>
+                  <span className="text-gray-500 dark:text-gray-400 text-xs">- Questionable</span>
                 </div>
                 <div className="flex items-center space-x-2">
                   <span className="text-[#e67e22] font-bold">?</span>
