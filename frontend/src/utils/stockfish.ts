@@ -3,7 +3,7 @@ import { MoveLabel } from '../types';
 class StockfishEngine {
   private worker: Worker | null = null;
   private ready: boolean = false;
-  private messageQueue: Array<(data: any) => void> = [];
+  private messageQueue: Array<(data: string) => void> = [];
   private loadingError: string | null = null;
 
   async init(): Promise<void> {
@@ -11,10 +11,10 @@ class StockfishEngine {
 
     return new Promise((resolve, reject) => {
       try {
-        // Use stockfish.js from CDN or local
+        // Use locally bundled stockfish.js (no CDN required)
         this.worker = new Worker('/stockfish.js');
         
-        let initTimeout = setTimeout(() => {
+        const initTimeout = setTimeout(() => {
           this.loadingError = 'Stockfish initialization timeout. Please refresh the page.';
           console.error(this.loadingError);
           reject(new Error(this.loadingError));
@@ -22,7 +22,7 @@ class StockfishEngine {
         
         this.worker.onerror = (error) => {
           clearTimeout(initTimeout);
-          this.loadingError = 'Failed to load Stockfish worker. Please check your internet connection.';
+          this.loadingError = 'Failed to load Stockfish worker. Please check browser console for details.';
           console.error('Stockfish worker error:', error);
           reject(error);
         };
@@ -34,9 +34,9 @@ class StockfishEngine {
           if (typeof message === 'string' && message.includes('info string')) {
             console.log('Stockfish:', message);
             
-            if (message.includes('ERROR') || message.includes('Failed to load from all sources')) {
+            if (message.includes('ERROR')) {
               clearTimeout(initTimeout);
-              this.loadingError = 'Failed to download Stockfish engine. Please check your internet connection and refresh.';
+              this.loadingError = 'Failed to load Stockfish engine. Please refresh the page.';
               reject(new Error(this.loadingError));
               return;
             }

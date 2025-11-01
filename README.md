@@ -32,7 +32,7 @@ Every move is analyzed by Stockfish 17 and labeled based on quality:
 | **Blunder** | ?? | 🟥 Red | Worse than -250cp |
 
 ### Engine Integration
-- **Stockfish 17** via WASM/CDN integration
+- **Stockfish 17** via locally bundled WASM (no CDN required)
 - UCI protocol communication
 - Real-time position evaluation
 - Adjustable depth (1-20) and skill level
@@ -58,7 +58,7 @@ Every move is analyzed by Stockfish 17 and labeled based on quality:
 
 ### Prerequisites
 - Node.js 18+ and npm
-- Internet connection (for Stockfish CDN download)
+- Modern browser with WebAssembly support (Chrome 57+, Firefox 52+, Safari 11+, Edge 16+)
 - (Optional) Cloudflare account for deployment
 
 ### Installation
@@ -90,7 +90,7 @@ npm run dev:frontend  # Frontend on http://localhost:3000
 npm run dev:backend   # Backend on http://localhost:3001
 ```
 
-**Note**: On first load, Stockfish engine will download from CDN (~2-5MB). This may take 10-30 seconds. A loading indicator will show progress.
+**Note**: Stockfish is now bundled locally with the application. The engine will load in 2-5 seconds on first use. No internet connection required after initial app load.
 
 ### Build for Production
 
@@ -305,13 +305,13 @@ function labelMove(userMove, engineMove, userEval, prevEval) {
 
 If the Stockfish engine fails to load:
 
-1. **Check Internet Connection** - Stockfish downloads from CDN on first use
-2. **Disable Ad-Blockers** - May block CDN requests
-3. **Try Different Browser** - Chrome/Firefox recommended
-4. **Clear Browser Cache** - Ctrl+Shift+Delete
-5. **Check Console** - Open F12 and look for error messages
+1. **Check Browser Compatibility** - Requires WebAssembly support (Chrome 57+, Firefox 52+, Safari 11+, Edge 16+)
+2. **Try Different Browser** - Chrome/Firefox recommended
+3. **Clear Browser Cache** - Ctrl+Shift+Delete
+4. **Check Console** - Open F12 and look for error messages
+5. **Verify Files** - Ensure `stockfish.js`, `stockfish.wasm.js`, and `stockfish.wasm` exist in `public/` folder
 
-See `public/STOCKFISH_SETUP.md` for detailed troubleshooting.
+See `frontend/public/STOCKFISH_SETUP.md` for detailed troubleshooting.
 
 ### Workers Not Found
 
