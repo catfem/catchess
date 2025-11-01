@@ -153,48 +153,53 @@ export const stockfishEngine = new StockfishEngine();
 export function labelMove(
   userMove: string,
   engineMove: string,
-  userEval: number,
+  currentEval: number,
   prevEval: number,
-  isBookMove: boolean = false
+  isBookMove: boolean = false,
+  playerColor: 'w' | 'b' = 'w'
 ): MoveLabel {
   if (isBookMove) return 'book';
 
-  const deltaCp = Math.abs((userEval - prevEval) * 100);
-  const evalLoss = (prevEval - userEval) * 100;
-
+  // Evaluations are from White's perspective
+  // For Black, we need to invert the evaluation change
+  const colorMultiplier = playerColor === 'w' ? 1 : -1;
+  
+  // Calculate evaluation loss from the player's perspective
+  const evalChange = (currentEval - prevEval) * colorMultiplier;
+  const evalLossCp = -evalChange * 100; // Positive = player lost advantage
+  
+  // Check if user played the best move
   if (userMove === engineMove) {
     return 'best';
   }
 
-  if (deltaCp <= 20) {
+  // Small evaluation change - still best or near-best
+  if (evalLossCp <= 20) {
     return 'best';
   }
 
-  if (deltaCp <= 50) {
+  // Very good move
+  if (evalLossCp <= 50) {
     return 'great';
   }
 
-  if (deltaCp <= 100 && evalLoss < 100) {
-    return 'great';
-  }
-
-  if (deltaCp <= 100) {
+  // Good move
+  if (evalLossCp <= 100) {
     return 'good';
   }
 
-  if (evalLoss >= 250) {
-    return 'blunder';
-  }
-
-  if (evalLoss >= 100) {
-    return 'mistake';
-  }
-
-  if (deltaCp <= 150) {
+  // Inaccuracy
+  if (evalLossCp <= 150) {
     return 'inaccuracy';
   }
 
-  return 'good';
+  // Mistake
+  if (evalLossCp <= 250) {
+    return 'mistake';
+  }
+
+  // Blunder
+  return 'blunder';
 }
 
 export function getMoveColor(label: MoveLabel): string {
