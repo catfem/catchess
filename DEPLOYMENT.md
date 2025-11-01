@@ -104,6 +104,32 @@ cd ..
 wrangler deploy
 ```
 
+Your worker will be deployed to: `https://catchess.<your-account>.workers.dev`
+
+### Step 5 (Optional): Configure Custom Domain Routes
+
+By default, the worker deploys to `*.workers.dev` and routes are not needed. If you want to deploy to a custom domain:
+
+1. **Add your domain to Cloudflare**:
+   - Log in to Cloudflare Dashboard
+   - Click **Add a Site**
+   - Follow the instructions to add your domain
+   - Update your domain's nameservers to Cloudflare's nameservers
+
+2. **Enable Cloudflare Proxy**:
+   - Make sure your domain's DNS records are proxied (orange cloud) in Cloudflare
+
+3. **Update wrangler.toml**:
+   - Uncomment the `[[routes]]` sections at the end of the file
+   - Replace `your-domain.com` with your actual domain name
+
+4. **Redeploy**:
+   ```bash
+   wrangler deploy
+   ```
+
+Your worker will now handle requests at your custom domain!
+
 ## Option 3: Custom Domain
 
 ### Add Custom Domain to Cloudflare Pages:
@@ -212,6 +238,24 @@ STOCKFISH_ENDPOINT=https://your-worker.workers.dev
 2. View requests, errors, and performance
 
 ## Troubleshooting
+
+### Cloudflare zone error:
+
+**Error**: `Could not find zone for 'your-domain.com'. Make sure the domain is set up to be proxied by Cloudflare.`
+
+**Solution**:
+This error occurs when routes are configured with a placeholder or non-existent domain. You have two options:
+
+1. **Deploy to *.workers.dev (Recommended)**:
+   - Make sure the `[[routes]]` sections in `wrangler.toml` are commented out (they should be by default)
+   - Deploy with `wrangler deploy`
+   - Your worker will be available at `https://catchess.<your-account>.workers.dev`
+
+2. **Deploy to a custom domain**:
+   - Add your domain to Cloudflare and configure nameservers
+   - Ensure DNS is proxied through Cloudflare (orange cloud icon)
+   - Uncomment the `[[routes]]` in `wrangler.toml` and replace `your-domain.com` with your actual domain
+   - Deploy with `wrangler deploy`
 
 ### D1 database error:
 
