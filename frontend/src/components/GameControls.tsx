@@ -15,7 +15,6 @@ export function GameControls() {
   } = useGameStore();
 
   const modes: { value: GameMode; label: string }[] = [
-    { value: 'vs-player-local', label: '👥 Local PvP' },
     { value: 'vs-engine', label: '🤖 vs Engine' },
     { value: 'analyze', label: '🔍 Analyze' },
     { value: 'vs-player-online', label: '🌐 Online PvP' },

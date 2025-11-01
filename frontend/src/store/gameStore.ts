@@ -32,7 +32,7 @@ interface GameStore {
 
 export const useGameStore = create<GameStore>((set, get) => ({
   chess: new Chess(),
-  gameMode: 'vs-player-local',
+  gameMode: 'analyze',
   moveHistory: [],
   currentMoveIndex: -1,
   isAnalyzing: false,
@@ -92,7 +92,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
       });
 
       // Perform analysis asynchronously after showing the move
-      if (engineSettings.enabled && gameMode !== 'vs-player-local') {
+      if (engineSettings.enabled) {
         // Get best move before the user's move was played
         const beforeResult = await stockfishEngine.getBestMove(fenBeforeMove, engineSettings.depth);
         

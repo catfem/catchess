@@ -207,10 +207,12 @@ export function getMoveColor(label: MoveLabel): string {
     brilliant: '#1abc9c',
     great: '#3498db',
     best: '#95a5a6',
+    excellent: '#16a085',
     book: '#f39c12',
     good: '#2ecc71',
     inaccuracy: '#f1c40f',
     mistake: '#e67e22',
+    miss: '#9b59b6',
     blunder: '#e74c3c',
   };
   return colors[label];
@@ -221,10 +223,12 @@ export function getMoveIcon(label: MoveLabel): string {
     brilliant: '‼',
     great: '!',
     best: '✓',
+    excellent: '⚡',
     book: '📖',
     good: '○',
     inaccuracy: '?!',
     mistake: '?',
+    miss: '⊘',
     blunder: '??',
   };
   return icons[label];
