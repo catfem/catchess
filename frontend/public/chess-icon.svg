@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <rect width="100" height="100" fill="#2563eb"/>
+  <g fill="#ffffff">
+    <!-- Knight piece -->
+    <path d="M30,70 L70,70 L70,75 L30,75 Z"/>
+    <path d="M35,70 L35,50 Q40,30 50,30 Q55,30 58,35 L60,38 L58,42 Q56,45 55,50 L65,50 L65,70"/>
+    <circle cx="52" cy="38" r="2"/>
+  </g>
+  <text x="50" y="92" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="#ffffff" text-anchor="middle">CHESS</text>
+</svg>
