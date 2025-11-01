@@ -2,15 +2,6 @@ name = "catchess"
 main = "workers/chess-api.js"
 compatibility_date = "2024-01-01"
 
-[durable_objects]
-bindings = [
-  { name = "CHESS_ROOM", class_name = "ChessRoom", script_name = "catchess" }
-]
-
-[[durable_objects.migrations]]
-tag = "v1"
-new_classes = ["ChessRoom"]
-
 # D1 Database Configuration (Cloudflare's free SQL database)
 # To set up D1 database, run these commands:
 # 1. wrangler d1 create catchess-db
