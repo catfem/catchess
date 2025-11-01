@@ -63,7 +63,11 @@ Your site will be live at: `https://catchess.pages.dev`
 
 If you need the backend API and WebSocket support:
 
-### Step 1: Create KV Namespace
+### Step 1: Create KV Namespace (Optional)
+
+KV namespaces are used to persist room data. If you don't need persistence, you can skip this step.
+
+To enable KV storage:
 
 ```bash
 # Create production KV namespace
@@ -73,16 +77,16 @@ wrangler kv:namespace create "CHESS_ROOMS"
 wrangler kv:namespace create "CHESS_ROOMS" --preview
 ```
 
-Note the namespace IDs returned.
+Note the namespace IDs returned by each command.
 
-### Step 2: Update wrangler.toml
+### Step 2: Update wrangler.toml (If using KV)
 
-Edit `wrangler.toml` and replace with your namespace IDs:
+If you created KV namespaces, edit `wrangler.toml` and uncomment the KV namespace section, replacing with your namespace IDs:
 
 ```toml
 [[kv_namespaces]]
 binding = "CHESS_ROOMS"
-id = "your-namespace-id-here"
+id = "your-production-namespace-id-here"
 preview_id = "your-preview-namespace-id-here"
 ```
 
@@ -206,6 +210,21 @@ STOCKFISH_ENDPOINT=https://your-worker.workers.dev
 2. View requests, errors, and performance
 
 ## Troubleshooting
+
+### KV namespace error (code: 10042):
+
+**Error**: `KV namespace 'your-kv-namespace-id' is not valid`
+
+**Solution**: This error occurs when wrangler.toml contains placeholder KV namespace IDs. You have two options:
+
+1. **Skip KV storage** (recommended for initial deployment):
+   - The KV namespace section is already commented out in `wrangler.toml`
+   - The worker will function without persistence
+   
+2. **Enable KV storage**:
+   - Create KV namespaces: `wrangler kv:namespace create "CHESS_ROOMS"`
+   - Create preview namespace: `wrangler kv:namespace create "CHESS_ROOMS" --preview`
+   - Uncomment the KV section in `wrangler.toml` and add the returned IDs
 
 ### Stockfish not loading:
 
