@@ -219,14 +219,19 @@ npm install -g wrangler
 wrangler login
 ```
 
-3. Create KV namespace:
+3. Create D1 database (free SQL database):
 ```bash
-wrangler kv:namespace create "CHESS_ROOMS"
+wrangler d1 create catchess-db
 ```
 
-4. Update `wrangler.toml` with your KV namespace ID
+4. Update `wrangler.toml` with your D1 database ID
 
-5. Deploy:
+5. Initialize database schema:
+```bash
+wrangler d1 execute catchess-db --file=./schema.sql
+```
+
+6. Deploy:
 ```bash
 npm run deploy
 ```
@@ -282,7 +287,7 @@ function labelMove(userMove, engineMove, userEval, prevEval) {
 - **Cloudflare Pages** - Frontend hosting
 - **Cloudflare Workers** - Serverless API
 - **Cloudflare Durable Objects** - WebSocket state
-- **Cloudflare KV** - Room storage
+- **Cloudflare D1** - Free SQL database (room storage)
 
 ### Chess Engine
 - **Stockfish 17** - Via CDN (stockfish.js)

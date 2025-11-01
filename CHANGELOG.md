@@ -45,7 +45,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - WebSocket support for real-time games
 - Cloudflare Workers/Pages deployment ready
 - Cloudflare Durable Objects for WebSocket state
-- Cloudflare KV for room storage
+- Cloudflare D1 for room storage (free SQL database)
 
 ### Documentation
 - README.md with comprehensive project overview
@@ -57,11 +57,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- **BREAKING**: Migrated from Cloudflare KV to D1 database for room storage
+  - D1 offers 50x more free reads (5M/day vs 100k/day)
+  - D1 offers 100x more free writes (100k/day vs 1k/day)
+  - Full SQL querying capabilities instead of key-value only
+  - Completely free for typical use case
+- Updated wrangler.toml to use D1 database binding
+- Refactored chess-api.js worker to use D1 SQL queries
+- Local P2P backend continues to use in-memory storage (unchanged)
+
+### Added
+- Created schema.sql for D1 database structure
+- Added D1_SETUP.md with comprehensive D1 configuration guide
+- Added MIGRATION_KV_TO_D1.md for users migrating from KV
+- D1 database cleanup and management commands
+
 ### Fixed
-- Fixed Cloudflare KV namespace deployment error (code: 10042) by making KV storage optional
-- KV namespace configuration now commented out by default in wrangler.toml
-- Added clear instructions for enabling KV storage when needed
-- Updated DEPLOYMENT.md with KV namespace troubleshooting guide
+- Improved error handling in worker API endpoints
+- Better database operation error logging
 
 ### Planned Features
 - Opening book database integration

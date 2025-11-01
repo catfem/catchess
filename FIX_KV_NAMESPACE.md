@@ -1,13 +1,16 @@
-# KV Namespace Configuration Fix
+# ⚠️ DEPRECATED - KV No Longer Used
 
-## Problem
-When attempting to deploy the CatChess worker, you may have encountered this error:
-```
-KV namespace 'your-kv-namespace-id' is not valid. [code: 10042]
-```
+## This File is Outdated
 
-## Solution
-The KV namespace configuration in `wrangler.toml` has been commented out to allow deployment without requiring KV setup upfront.
+CatChess now uses **Cloudflare D1** (free SQL database) instead of KV.
+
+Please see:
+- **[D1_SETUP.md](./D1_SETUP.md)** for new D1 configuration
+- **[MIGRATION_KV_TO_D1.md](./MIGRATION_KV_TO_D1.md)** for migration guide
+
+---
+
+## Old Information (For Reference Only)
 
 ## Changes Made
 1. **wrangler.toml**: KV namespace configuration is now commented out with clear instructions

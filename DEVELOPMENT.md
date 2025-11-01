@@ -130,7 +130,7 @@ catchess/
 - **Cloudflare Pages**: Frontend hosting
 - **Cloudflare Workers**: Serverless functions
 - **Cloudflare Durable Objects**: Stateful WebSocket connections
-- **Cloudflare KV**: Key-value storage
+- **Cloudflare D1**: SQL database (free tier)
 
 ## Component Architecture
 

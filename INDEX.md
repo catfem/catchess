@@ -22,6 +22,8 @@ Welcome to the CatChess documentation! This index will guide you to the right do
 
 ### For Deployment
 - **[Deployment Guide](DEPLOYMENT.md)** - Deploy to Cloudflare or self-host
+- **[D1 Database Setup](D1_SETUP.md)** - Configure Cloudflare D1 database
+- **[KV to D1 Migration](MIGRATION_KV_TO_D1.md)** - Migrate from KV to D1
 - **[Project Summary](PROJECT_SUMMARY.md)** - Overview of what's built
 - **[Docker Setup](docker-compose.yml)** - Containerized deployment
 
