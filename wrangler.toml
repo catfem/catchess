@@ -17,10 +17,19 @@ database_id = "local"  # Replace with your D1 database ID after running: wrangle
 [site]
 bucket = "./frontend/dist"
 
-[[routes]]
-pattern = "/api/*"
-zone_name = "your-domain.com"
-
-[[routes]]
-pattern = "/ws/*"
-zone_name = "your-domain.com"
+# Routes are only needed if deploying to a custom domain managed by Cloudflare
+# For *.workers.dev deployment, routes are not required - the worker is accessible at:
+# https://catchess.<your-account>.workers.dev
+#
+# To deploy to a custom domain:
+# 1. Add your domain to Cloudflare (DNS must be proxied through Cloudflare)
+# 2. Uncomment the routes below and replace "your-domain.com" with your actual domain
+# 3. Deploy with: wrangler deploy
+#
+# [[routes]]
+# pattern = "/api/*"
+# zone_name = "your-domain.com"
+#
+# [[routes]]
+# pattern = "/ws/*"
+# zone_name = "your-domain.com"
