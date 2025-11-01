@@ -2,7 +2,7 @@ import { useGameStore } from '../store/gameStore';
 import { getMoveColor, getMoveIcon } from '../utils/stockfish';
 
 export function MoveList() {
-  const { moveHistory, currentMoveIndex, goToMove, isAnalyzing } = useGameStore();
+  const { moveHistory, currentMoveIndex, goToMove, isAnalyzing, analysisQueue, processingQueue } = useGameStore();
 
   if (moveHistory.length === 0) {
     return (
@@ -25,10 +25,14 @@ export function MoveList() {
       <div className="sticky top-0 bg-[#2b2926] border-b border-gray-800 px-4 py-3 z-10">
         <div className="flex justify-between items-center">
           <h3 className="text-sm font-semibold text-gray-300 uppercase tracking-wide">Moves</h3>
-          {isAnalyzing && (
-            <div className="flex items-center gap-1">
+          {(isAnalyzing || processingQueue || analysisQueue.length > 0) && (
+            <div className="flex items-center gap-2">
               <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
-              <span className="text-xs text-gray-400">Analyzing...</span>
+              <span className="text-xs text-gray-400">
+                {analysisQueue.length > 0 
+                  ? `Analyzing (${analysisQueue.length} in queue)` 
+                  : 'Analyzing...'}
+              </span>
             </div>
           )}
         </div>
