@@ -355,9 +355,11 @@ export const useGameStore = create<GameStore>((set, get) => ({
         if (updatedHistory[item.moveIndex]) {
           const prevEval = item.moveIndex > 0 ? updatedHistory[item.moveIndex - 1].eval : 0;
           
+          // Store evaluation from White's perspective (Stockfish convention)
+          // Positive = White advantage, Negative = Black advantage
           updatedHistory[item.moveIndex] = {
             ...updatedHistory[item.moveIndex],
-            eval: afterResult.eval,
+            eval: afterResult.eval,  // ALWAYS from White's perspective
             cp: afterResult.cp || 0,
             mate: afterResult.mate,
             bestMove: beforeResult.bestMove,
