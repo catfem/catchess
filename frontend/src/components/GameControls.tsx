@@ -31,11 +31,14 @@ export function GameControls() {
             <button
               key={mode.value}
               onClick={() => setGameMode(mode.value)}
-              className={`px-3 py-2 rounded-lg text-sm font-medium transition-all ${
+              className={`px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
                 gameMode === mode.value
-                  ? 'bg-blue-600 text-white shadow-lg'
+                  ? 'text-white shadow-lg'
                   : 'bg-[#2b2926] text-gray-300 hover:bg-[#3a3633] border border-gray-700'
               }`}
+              style={gameMode === mode.value ? { 
+                backgroundColor: 'var(--pale-blue)' 
+              } : {}}
             >
               <span className="flex items-center justify-center gap-2">
                 <span>{mode.icon}</span>
@@ -123,7 +126,10 @@ export function GameControls() {
         <div className="space-y-2">
           <button
             onClick={resetGame}
-            className="w-full px-4 py-2.5 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-all font-medium shadow-lg hover:shadow-xl"
+            className="w-full px-4 py-2.5 text-white rounded-lg transition-all duration-200 font-medium shadow-lg hover:shadow-xl"
+            style={{ backgroundColor: 'var(--pale-red)' }}
+            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--pale-red-hover)'}
+            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'var(--pale-red)'}
           >
             <span className="flex items-center justify-center gap-2">
               🔄 <span>New Game</span>
@@ -133,7 +139,10 @@ export function GameControls() {
           <button
             onClick={undoMove}
             disabled={chess.history().length === 0}
-            className="w-full px-4 py-2.5 bg-[#2b2926] text-gray-300 rounded-lg hover:bg-[#3a3633] transition-all font-medium disabled:opacity-30 disabled:cursor-not-allowed border border-gray-700"
+            className="w-full px-4 py-2.5 text-white rounded-lg transition-all duration-200 font-medium shadow-lg hover:shadow-xl disabled:opacity-30 disabled:cursor-not-allowed"
+            style={{ backgroundColor: 'var(--pale-gray)' }}
+            onMouseEnter={(e) => !chess.history().length && (e.currentTarget.style.backgroundColor = 'var(--pale-gray-hover)')}
+            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'var(--pale-gray)'}
           >
             <span className="flex items-center justify-center gap-2">
               ↶ <span>Undo Move</span>
@@ -144,7 +153,10 @@ export function GameControls() {
             <button
               onClick={analyzePosition}
               disabled={isAnalyzing}
-              className="w-full px-4 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all font-medium shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full px-4 py-2.5 text-white rounded-lg transition-all duration-200 font-medium shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
+              style={{ backgroundColor: isAnalyzing ? 'var(--pale-gray)' : 'var(--pale-green)' }}
+              onMouseEnter={(e) => !isAnalyzing && (e.currentTarget.style.backgroundColor = 'var(--pale-green-hover)')}
+              onMouseLeave={(e) => !isAnalyzing && (e.currentTarget.style.backgroundColor = 'var(--pale-green)')}
             >
               <span className="flex items-center justify-center gap-2">
                 {isAnalyzing ? (

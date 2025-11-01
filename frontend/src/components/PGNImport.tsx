@@ -26,7 +26,10 @@ export function PGNImport() {
     return (
       <button
         onClick={() => setShowModal(true)}
-        className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-all font-medium shadow-lg hover:shadow-xl"
+        className="px-4 py-2 text-white rounded-lg transition-all duration-200 font-medium shadow-lg hover:shadow-xl"
+        style={{ backgroundColor: 'var(--pale-purple)' }}
+        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--pale-purple-hover)'}
+        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'var(--pale-purple)'}
       >
         <span className="flex items-center gap-2">
           📋 <span className="hidden sm:inline">Import PGN</span>
@@ -94,14 +97,20 @@ Example:
           <button
             onClick={handleImport}
             disabled={!pgn.trim()}
-            className="px-5 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all font-medium shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
+            className="px-5 py-2.5 text-white rounded-lg transition-all duration-200 font-medium shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
+            style={{ backgroundColor: !pgn.trim() ? 'var(--pale-gray)' : 'var(--pale-blue)' }}
+            onMouseEnter={(e) => pgn.trim() && (e.currentTarget.style.backgroundColor = 'var(--pale-blue-hover)')}
+            onMouseLeave={(e) => pgn.trim() && (e.currentTarget.style.backgroundColor = 'var(--pale-blue)')}
           >
             Import Only
           </button>
           <button
             onClick={handleAnalyze}
             disabled={!pgn.trim() || isAnalyzing}
-            className="px-5 py-2.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-all font-medium shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+            className="px-5 py-2.5 text-white rounded-lg transition-all duration-200 font-medium shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+            style={{ backgroundColor: (!pgn.trim() || isAnalyzing) ? 'var(--pale-gray)' : 'var(--pale-green)' }}
+            onMouseEnter={(e) => (pgn.trim() && !isAnalyzing) && (e.currentTarget.style.backgroundColor = 'var(--pale-green-hover)')}
+            onMouseLeave={(e) => (pgn.trim() && !isAnalyzing) && (e.currentTarget.style.backgroundColor = 'var(--pale-green)')}
           >
             {isAnalyzing ? (
               <>
