@@ -3,12 +3,22 @@ import { Chess } from 'chess.js';
 import { GameMode, MoveAnalysis, EngineSettings, OnlineRoom, ThemeSettings, EvaluationData } from '../types';
 import { stockfishEngine, labelMove } from '../utils/stockfish';
 
+interface AnalysisQueueItem {
+  moveIndex: number;
+  fenBefore: string;
+  fenAfter: string;
+  move: string;
+  color: 'w' | 'b';
+}
+
 interface GameStore {
   chess: Chess;
   gameMode: GameMode;
   moveHistory: MoveAnalysis[];
   currentMoveIndex: number;
   isAnalyzing: boolean;
+  analysisQueue: AnalysisQueueItem[];
+  processingQueue: boolean;
   engineSettings: EngineSettings;
   onlineRoom: OnlineRoom | null;
   theme: ThemeSettings;
@@ -28,14 +38,17 @@ interface GameStore {
   createOnlineRoom: () => Promise<string>;
   joinOnlineRoom: (roomId: string) => Promise<void>;
   loadPGN: (pgn: string) => void;
+  processAnalysisQueue: () => Promise<void>;
 }
 
 export const useGameStore = create<GameStore>((set, get) => ({
   chess: new Chess(),
-  gameMode: 'vs-player-local',
+  gameMode: 'analyze',
   moveHistory: [],
   currentMoveIndex: -1,
   isAnalyzing: false,
+  analysisQueue: [],
+  processingQueue: false,
   engineSettings: {
     enabled: true,
     depth: 18,
@@ -57,7 +70,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
   },
 
   makeMove: async (from, to, promotion = 'q') => {
-    const { chess, gameMode, engineSettings, moveHistory } = get();
+    const { chess, gameMode, engineSettings, moveHistory, analysisQueue } = get();
     
     try {
       // Capture the FEN before making the move
@@ -79,6 +92,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
         fen: fenAfterMove,
         moveNumber: Math.floor(chess.moveNumber()),
         color: move.color,
+        isAnalyzing: true,
       };
 
       newHistory.push(moveAnalysis);
@@ -91,34 +105,22 @@ export const useGameStore = create<GameStore>((set, get) => ({
         currentMoveIndex: moveIndex,
       });
 
-      // Perform analysis asynchronously after showing the move
-      if (engineSettings.enabled && gameMode !== 'vs-player-local') {
-        // Get best move before the user's move was played
-        const beforeResult = await stockfishEngine.getBestMove(fenBeforeMove, engineSettings.depth);
+      // Queue the move for analysis if enabled
+      if (engineSettings.enabled) {
+        const queueItem: AnalysisQueueItem = {
+          moveIndex,
+          fenBefore: fenBeforeMove,
+          fenAfter: fenAfterMove,
+          move: move.from + move.to,
+          color: move.color,
+        };
         
-        // Get evaluation after the user's move
-        const afterResult = await stockfishEngine.getBestMove(fenAfterMove, engineSettings.depth);
+        set({ analysisQueue: [...analysisQueue, queueItem] });
         
-        // Update the move analysis
-        const updatedHistory = [...get().moveHistory];
-        const prevEval = moveIndex > 0 ? updatedHistory[moveIndex - 1].eval : 0;
-        
-        updatedHistory[moveIndex].eval = afterResult.eval;
-        updatedHistory[moveIndex].cp = afterResult.cp || 0;
-        updatedHistory[moveIndex].mate = afterResult.mate;
-        updatedHistory[moveIndex].bestMove = beforeResult.bestMove;
-        updatedHistory[moveIndex].label = labelMove(
-          move.from + move.to,
-          beforeResult.bestMove,
-          afterResult.eval,
-          prevEval,
-          chess.moveNumber() <= 10,
-          move.color
-        );
-
-        set({
-          moveHistory: updatedHistory,
-        });
+        // Start processing queue if not already processing
+        if (!get().processingQueue) {
+          get().processAnalysisQueue();
+        }
       }
 
       if (gameMode === 'vs-engine' && chess.turn() !== get().playerColor[0]) {
@@ -314,5 +316,78 @@ export const useGameStore = create<GameStore>((set, get) => ({
     } catch (error) {
       console.error('Invalid PGN:', error);
     }
+  },
+
+  processAnalysisQueue: async () => {
+    const { analysisQueue, processingQueue, engineSettings } = get();
+    
+    // Prevent concurrent queue processing
+    if (processingQueue || analysisQueue.length === 0) {
+      return;
+    }
+    
+    set({ processingQueue: true });
+    
+    console.log(`Starting queue processing: ${analysisQueue.length} moves to analyze`);
+    
+    // Process queue sequentially
+    while (get().analysisQueue.length > 0) {
+      const queue = get().analysisQueue;
+      const item = queue[0];
+      
+      try {
+        console.log(`Analyzing move ${item.moveIndex + 1}: ${item.move}`);
+        
+        // Get best move before the user's move was played
+        const beforeResult = await stockfishEngine.getBestMove(
+          item.fenBefore, 
+          engineSettings.depth
+        );
+        
+        // Get evaluation after the user's move
+        const afterResult = await stockfishEngine.getBestMove(
+          item.fenAfter, 
+          engineSettings.depth
+        );
+        
+        // Update the move analysis
+        const updatedHistory = [...get().moveHistory];
+        if (updatedHistory[item.moveIndex]) {
+          const prevEval = item.moveIndex > 0 ? updatedHistory[item.moveIndex - 1].eval : 0;
+          
+          // Store evaluation from White's perspective (Stockfish convention)
+          // Positive = White advantage, Negative = Black advantage
+          updatedHistory[item.moveIndex] = {
+            ...updatedHistory[item.moveIndex],
+            eval: afterResult.eval,  // ALWAYS from White's perspective
+            cp: afterResult.cp || 0,
+            mate: afterResult.mate,
+            bestMove: beforeResult.bestMove,
+            depth: engineSettings.depth,
+            isAnalyzing: false,
+            label: labelMove(
+              item.move,
+              beforeResult.bestMove,
+              afterResult.eval,
+              prevEval,
+              item.moveIndex < 20, // Consider first 20 moves as opening
+              item.color
+            ),
+          };
+          
+          console.log(`Move ${item.moveIndex + 1} analyzed: ${updatedHistory[item.moveIndex].label}, eval: ${afterResult.eval.toFixed(2)}`);
+          
+          set({ moveHistory: updatedHistory });
+        }
+      } catch (error) {
+        console.error(`Error analyzing move ${item.moveIndex}:`, error);
+      }
+      
+      // Remove processed item from queue
+      set({ analysisQueue: get().analysisQueue.slice(1) });
+    }
+    
+    set({ processingQueue: false });
+    console.log('Queue processing complete');
   },
 }));

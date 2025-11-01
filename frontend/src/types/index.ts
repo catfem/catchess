@@ -1,13 +1,15 @@
-export type GameMode = 'analyze' | 'vs-engine' | 'vs-player-local' | 'vs-player-online';
+export type GameMode = 'analyze' | 'vs-engine';
 
 export type MoveLabel = 
   | 'brilliant' 
   | 'great' 
   | 'best' 
+  | 'excellent'
   | 'book' 
   | 'good'
   | 'inaccuracy' 
   | 'mistake' 
+  | 'miss'
   | 'blunder';
 
 export interface MoveAnalysis {
@@ -24,6 +26,11 @@ export interface MoveAnalysis {
   fen: string;
   moveNumber: number;
   color: 'w' | 'b';
+  timestamp?: number; // Unix timestamp when move was made
+  timeSpent?: number; // Time spent on this move in milliseconds
+  depth?: number; // Analysis depth used for this move
+  isAnalyzing?: boolean; // Currently being analyzed
+  currentDepth?: number; // Current depth during analysis
 }
 
 export interface GameState {
