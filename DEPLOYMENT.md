@@ -61,36 +61,38 @@ Your site will be live at: `https://catchess.pages.dev`
 
 ## Option 2: Cloudflare Workers (For API)
 
-If you need the backend API and WebSocket support:
+If you need the backend API and WebSocket support with D1 database:
 
-### Step 1: Create KV Namespace (Optional)
+### Step 1: Create D1 Database
 
-KV namespaces are used to persist room data. If you don't need persistence, you can skip this step.
-
-To enable KV storage:
+D1 is Cloudflare's free SQL database (5GB storage, 5M reads/day):
 
 ```bash
-# Create production KV namespace
-wrangler kv:namespace create "CHESS_ROOMS"
-
-# Create preview KV namespace (for development)
-wrangler kv:namespace create "CHESS_ROOMS" --preview
+# Create the database
+wrangler d1 create catchess-db
 ```
 
-Note the namespace IDs returned by each command.
+This will output your database ID. Copy it!
 
-### Step 2: Update wrangler.toml (If using KV)
+### Step 2: Update wrangler.toml
 
-If you created KV namespaces, edit `wrangler.toml` and uncomment the KV namespace section, replacing with your namespace IDs:
+Edit `wrangler.toml` and replace the `database_id`:
 
 ```toml
-[[kv_namespaces]]
-binding = "CHESS_ROOMS"
-id = "your-production-namespace-id-here"
-preview_id = "your-preview-namespace-id-here"
+[[d1_databases]]
+binding = "DB"
+database_name = "catchess-db"
+database_id = "your-actual-database-id-here"  # Replace with ID from step 1
 ```
 
-### Step 3: Deploy Worker
+### Step 3: Initialize Database Schema
+
+```bash
+# Apply the schema to create tables
+wrangler d1 execute catchess-db --file=./schema.sql
+```
+
+### Step 4: Deploy Worker
 
 ```bash
 # Build frontend first
@@ -211,20 +213,25 @@ STOCKFISH_ENDPOINT=https://your-worker.workers.dev
 
 ## Troubleshooting
 
-### KV namespace error (code: 10042):
+### D1 database error:
 
-**Error**: `KV namespace 'your-kv-namespace-id' is not valid`
+**Error**: `binding DB is not defined` or `database not found`
 
-**Solution**: This error occurs when wrangler.toml contains placeholder KV namespace IDs. You have two options:
+**Solution**: 
+1. Make sure you created the D1 database: `wrangler d1 create catchess-db`
+2. Update `database_id` in `wrangler.toml` with your actual database ID
+3. Initialize the schema: `wrangler d1 execute catchess-db --file=./schema.sql`
+4. For local development, use `wrangler dev` which creates a local SQLite database automatically
 
-1. **Skip KV storage** (recommended for initial deployment):
-   - The KV namespace section is already commented out in `wrangler.toml`
-   - The worker will function without persistence
-   
-2. **Enable KV storage**:
-   - Create KV namespaces: `wrangler kv:namespace create "CHESS_ROOMS"`
-   - Create preview namespace: `wrangler kv:namespace create "CHESS_ROOMS" --preview`
-   - Uncomment the KV section in `wrangler.toml` and add the returned IDs
+### Query D1 database:
+
+```bash
+# List all rooms
+wrangler d1 execute catchess-db --command="SELECT * FROM chess_rooms"
+
+# Delete old rooms (cleanup)
+wrangler d1 execute catchess-db --command="DELETE FROM chess_rooms WHERE created_at < strftime('%s', 'now', '-1 hour') * 1000"
+```
 
 ### Stockfish not loading:
 

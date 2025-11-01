@@ -142,27 +142,32 @@ wrangler pages deploy frontend/dist --project-name=catchess
 ```
 Deploy to Cloudflare Pages directly.
 
-### KV Management
+### D1 Database Management
 
 ```bash
-wrangler kv:namespace create "CHESS_ROOMS"
+wrangler d1 create catchess-db
 ```
-Create a new KV namespace.
+Create a new D1 database.
 
 ```bash
-wrangler kv:namespace list
+wrangler d1 list
 ```
-List all KV namespaces.
+List all D1 databases.
 
 ```bash
-wrangler kv:key put --namespace-id=<id> "<key>" "<value>"
+wrangler d1 execute catchess-db --file=./schema.sql
 ```
-Put a value in KV storage.
+Execute SQL file on D1 database (initialize schema).
 
 ```bash
-wrangler kv:key get --namespace-id=<id> "<key>"
+wrangler d1 execute catchess-db --command="SELECT * FROM chess_rooms"
 ```
-Get a value from KV storage.
+Execute SQL command on D1 database.
+
+```bash
+wrangler d1 execute catchess-db --command="DELETE FROM chess_rooms WHERE created_at < strftime('%s', 'now', '-1 hour') * 1000"
+```
+Clean up old rooms (older than 1 hour).
 
 ### Logs & Monitoring
 

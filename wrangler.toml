@@ -11,16 +11,17 @@ bindings = [
 tag = "v1"
 new_classes = ["ChessRoom"]
 
-# KV Namespace Configuration (optional)
-# To enable KV storage for chess rooms, run these commands:
-# 1. wrangler kv:namespace create "CHESS_ROOMS"
-# 2. wrangler kv:namespace create "CHESS_ROOMS" --preview
-# Then uncomment and update the lines below with the returned namespace IDs
+# D1 Database Configuration (Cloudflare's free SQL database)
+# To set up D1 database, run these commands:
+# 1. wrangler d1 create catchess-db
+# 2. wrangler d1 execute catchess-db --file=./schema.sql
+# Then update the database_id below with the returned ID
 #
-# [[kv_namespaces]]
-# binding = "CHESS_ROOMS"
-# id = "your-kv-namespace-id"
-# preview_id = "your-preview-kv-namespace-id"
+# For local development, D1 will automatically create a local SQLite database
+[[d1_databases]]
+binding = "DB"
+database_name = "catchess-db"
+database_id = "local"  # Replace with your D1 database ID after running: wrangler d1 create catchess-db
 
 [site]
 bucket = "./frontend/dist"

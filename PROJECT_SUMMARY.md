@@ -57,7 +57,7 @@
 #### ✅ Cloudflare Integration
 - **Workers**: Serverless API implementation
 - **Durable Objects**: Stateful WebSocket handling
-- **KV Storage**: Room persistence
+- **D1 Database**: Room persistence (free SQL database)
 - **Pages**: Frontend hosting configuration
 
 #### ✅ Stockfish Integration

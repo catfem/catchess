@@ -72,7 +72,7 @@
 - [x] **Cloudflare Integration**
   - Workers implementation
   - Durable Objects for WebSocket
-  - KV storage configuration
+  - D1 database configuration
   - Pages deployment ready
 
 - [x] **Build & Deployment**
@@ -197,7 +197,7 @@ The application supports multiple deployment methods:
 - **Pages**: Frontend hosting
 - **Workers**: Serverless API
 - **Durable Objects**: WebSocket state
-- **KV**: Room storage
+- **D1**: SQL database (free tier)
 - **Cost**: Free tier available
 - **Status**: Configuration ready
 
@@ -261,7 +261,7 @@ The application supports multiple deployment methods:
 - **Cloudflare Pages**
 - **Cloudflare Workers**
 - **Cloudflare Durable Objects**
-- **Cloudflare KV**
+- **Cloudflare D1**
 
 ### Tools
 - **Git** for version control
