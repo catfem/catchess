@@ -17,7 +17,6 @@ export function GameControls() {
   const modes: { value: GameMode; label: string; icon: string }[] = [
     { value: 'vs-engine', label: 'vs Engine', icon: '🤖' },
     { value: 'analyze', label: 'Analyze', icon: '🔍' },
-    { value: 'vs-player-online', label: 'Online', icon: '🌐' },
   ];
 
   return (

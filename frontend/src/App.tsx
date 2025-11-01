@@ -1,17 +1,14 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { ChessBoard } from './components/ChessBoard';
 import { MoveList } from './components/MoveList';
 import { EvaluationBar } from './components/EvaluationBar';
 import { GameControls } from './components/GameControls';
 import { PGNImport } from './components/PGNImport';
-import { OnlineRoom } from './components/OnlineRoom';
-import { ThemeToggle } from './components/ThemeToggle';
 import { StockfishStatus } from './components/StockfishStatus';
 import { useGameStore } from './store/gameStore';
 
 function App() {
   const { 
-    gameMode, 
     moveHistory, 
     chess, 
     currentMoveIndex, 
@@ -22,15 +19,6 @@ function App() {
   
   const [showSidebar, setShowSidebar] = useState(true);
   const [showAnalysis, setShowAnalysis] = useState(true);
-
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const roomId = params.get('room');
-    if (roomId) {
-      useGameStore.getState().setGameMode('vs-player-online');
-      useGameStore.getState().joinOnlineRoom(roomId);
-    }
-  }, []);
 
   const currentMove = moveHistory[currentMoveIndex >= 0 ? currentMoveIndex : moveHistory.length - 1];
   const whiteToMove = chess.turn() === 'w';
@@ -73,7 +61,6 @@ function App() {
 
           <div className="flex items-center gap-3">
             <PGNImport />
-            <ThemeToggle />
             <button
               onClick={() => setShowSidebar(!showSidebar)}
               className="lg:hidden p-2 hover:bg-gray-700 rounded-lg transition-colors"
@@ -154,8 +141,6 @@ function App() {
 
             {/* Controls */}
             <GameControls />
-            
-            {gameMode === 'vs-player-online' && <OnlineRoom />}
           </div>
         </aside>
 

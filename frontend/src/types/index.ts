@@ -1,4 +1,4 @@
-export type GameMode = 'analyze' | 'vs-engine' | 'vs-player-online';
+export type GameMode = 'analyze' | 'vs-engine';
 
 export type MoveLabel = 
   | 'brilliant' 
