@@ -57,6 +57,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- Fixed Cloudflare KV namespace deployment error (code: 10042) by making KV storage optional
+- KV namespace configuration now commented out by default in wrangler.toml
+- Added clear instructions for enabling KV storage when needed
+- Updated DEPLOYMENT.md with KV namespace troubleshooting guide
+
 ### Planned Features
 - Opening book database integration
 - Game puzzles and training mode

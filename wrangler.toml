@@ -11,10 +11,16 @@ bindings = [
 tag = "v1"
 new_classes = ["ChessRoom"]
 
-[[kv_namespaces]]
-binding = "CHESS_ROOMS"
-id = "your-kv-namespace-id"
-preview_id = "your-preview-kv-namespace-id"
+# KV Namespace Configuration (optional)
+# To enable KV storage for chess rooms, run these commands:
+# 1. wrangler kv:namespace create "CHESS_ROOMS"
+# 2. wrangler kv:namespace create "CHESS_ROOMS" --preview
+# Then uncomment and update the lines below with the returned namespace IDs
+#
+# [[kv_namespaces]]
+# binding = "CHESS_ROOMS"
+# id = "your-kv-namespace-id"
+# preview_id = "your-preview-kv-namespace-id"
 
 [site]
 bucket = "./frontend/dist"
