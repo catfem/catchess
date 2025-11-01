@@ -1,0 +1,27 @@
+{
+  "name": "catchess",
+  "version": "1.0.0",
+  "description": "Chess Analysis & Play System powered by Stockfish 17",
+  "scripts": {
+    "install:all": "npm install && cd frontend && npm install && cd ../backend && npm install",
+    "dev": "concurrently \"npm run dev:frontend\" \"npm run dev:backend\"",
+    "dev:frontend": "cd frontend && npm run dev",
+    "dev:backend": "cd backend && npm run dev",
+    "build": "cd frontend && npm run build",
+    "preview": "cd frontend && npm run preview",
+    "deploy": "npm run build && wrangler deploy"
+  },
+  "keywords": [
+    "chess",
+    "stockfish",
+    "analysis",
+    "pvp",
+    "game"
+  ],
+  "author": "CatChess Team",
+  "license": "MIT",
+  "devDependencies": {
+    "concurrently": "^8.2.2",
+    "wrangler": "^3.22.0"
+  }
+}

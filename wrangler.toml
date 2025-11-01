@@ -1,0 +1,28 @@
+name = "catchess"
+main = "workers/chess-api.js"
+compatibility_date = "2024-01-01"
+
+[durable_objects]
+bindings = [
+  { name = "CHESS_ROOM", class_name = "ChessRoom", script_name = "catchess" }
+]
+
+[[durable_objects.migrations]]
+tag = "v1"
+new_classes = ["ChessRoom"]
+
+[[kv_namespaces]]
+binding = "CHESS_ROOMS"
+id = "your-kv-namespace-id"
+preview_id = "your-preview-kv-namespace-id"
+
+[site]
+bucket = "./frontend/dist"
+
+[[routes]]
+pattern = "/api/*"
+zone_name = "your-domain.com"
+
+[[routes]]
+pattern = "/ws/*"
+zone_name = "your-domain.com"

@@ -1,0 +1,300 @@
+import { create } from 'zustand';
+import { Chess } from 'chess.js';
+import { GameMode, MoveAnalysis, EngineSettings, OnlineRoom, ThemeSettings, EvaluationData } from '../types';
+import { stockfishEngine, labelMove } from '../utils/stockfish';
+
+interface GameStore {
+  chess: Chess;
+  gameMode: GameMode;
+  moveHistory: MoveAnalysis[];
+  currentMoveIndex: number;
+  isAnalyzing: boolean;
+  engineSettings: EngineSettings;
+  onlineRoom: OnlineRoom | null;
+  theme: ThemeSettings;
+  evaluationHistory: EvaluationData[];
+  playerColor: 'white' | 'black';
+  
+  setGameMode: (mode: GameMode) => void;
+  makeMove: (from: string, to: string, promotion?: string) => Promise<boolean>;
+  analyzePosition: () => Promise<void>;
+  analyzeGame: (pgn: string) => Promise<void>;
+  undoMove: () => void;
+  resetGame: () => void;
+  goToMove: (index: number) => void;
+  setEngineSettings: (settings: Partial<EngineSettings>) => void;
+  makeEngineMove: () => Promise<void>;
+  setTheme: (theme: Partial<ThemeSettings>) => void;
+  createOnlineRoom: () => Promise<string>;
+  joinOnlineRoom: (roomId: string) => Promise<void>;
+  loadPGN: (pgn: string) => void;
+}
+
+export const useGameStore = create<GameStore>((set, get) => ({
+  chess: new Chess(),
+  gameMode: 'vs-player-local',
+  moveHistory: [],
+  currentMoveIndex: -1,
+  isAnalyzing: false,
+  engineSettings: {
+    enabled: true,
+    depth: 18,
+    skill: 20,
+    multiPv: 1,
+    threads: 1,
+  },
+  onlineRoom: null,
+  theme: {
+    mode: 'light',
+    boardTheme: 'blue',
+  },
+  evaluationHistory: [],
+  playerColor: 'white',
+
+  setGameMode: (mode) => {
+    set({ gameMode: mode });
+    get().resetGame();
+  },
+
+  makeMove: async (from, to, promotion = 'q') => {
+    const { chess, gameMode, engineSettings, moveHistory } = get();
+    
+    try {
+      const move = chess.move({ from, to, promotion });
+      if (!move) return false;
+
+      const newHistory = [...moveHistory];
+      const moveAnalysis: MoveAnalysis = {
+        move: move.san,
+        from: move.from,
+        to: move.to,
+        san: move.san,
+        eval: 0,
+        label: 'good',
+        cp: 0,
+        fen: chess.fen(),
+        moveNumber: Math.floor(chess.moveNumber()),
+        color: move.color,
+      };
+
+      if (engineSettings.enabled && gameMode !== 'vs-player-local') {
+        const result = await stockfishEngine.getBestMove(chess.fen(), engineSettings.depth);
+        moveAnalysis.eval = result.eval;
+        moveAnalysis.cp = result.cp || 0;
+        moveAnalysis.mate = result.mate;
+        moveAnalysis.bestMove = result.bestMove;
+
+        if (newHistory.length > 0) {
+          const prevEval = newHistory[newHistory.length - 1].eval;
+          moveAnalysis.label = labelMove(
+            move.from + move.to,
+            result.bestMove,
+            moveAnalysis.eval,
+            prevEval,
+            chess.moveNumber() <= 10
+          );
+        }
+      }
+
+      newHistory.push(moveAnalysis);
+      
+      set({
+        chess: new Chess(chess.fen()),
+        moveHistory: newHistory,
+        currentMoveIndex: newHistory.length - 1,
+      });
+
+      if (gameMode === 'vs-engine' && chess.turn() !== get().playerColor[0]) {
+        setTimeout(() => get().makeEngineMove(), 500);
+      }
+
+      return true;
+    } catch (error) {
+      console.error('Invalid move:', error);
+      return false;
+    }
+  },
+
+  analyzePosition: async () => {
+    const { chess, engineSettings } = get();
+    set({ isAnalyzing: true });
+    
+    try {
+      const result = await stockfishEngine.getBestMove(chess.fen(), engineSettings.depth);
+      console.log('Analysis:', result);
+    } catch (error) {
+      console.error('Analysis error:', error);
+    } finally {
+      set({ isAnalyzing: false });
+    }
+  },
+
+  analyzeGame: async (pgn: string) => {
+    set({ isAnalyzing: true });
+    const chess = new Chess();
+    
+    try {
+      chess.loadPgn(pgn);
+      const moves = chess.history({ verbose: true });
+      const analysis: MoveAnalysis[] = [];
+      
+      const tempChess = new Chess();
+      let prevEval = 0;
+
+      for (const move of moves) {
+        const beforeMove = tempChess.fen();
+        const result = await stockfishEngine.getBestMove(beforeMove, 15);
+        
+        tempChess.move(move);
+        const afterResult = await stockfishEngine.getBestMove(tempChess.fen(), 15);
+        
+        const moveAnalysis: MoveAnalysis = {
+          move: move.san,
+          from: move.from,
+          to: move.to,
+          san: move.san,
+          eval: afterResult.eval,
+          label: labelMove(
+            move.from + move.to,
+            result.bestMove,
+            afterResult.eval,
+            prevEval,
+            tempChess.moveNumber() <= 10
+          ),
+          cp: afterResult.cp || 0,
+          mate: afterResult.mate,
+          bestMove: result.bestMove,
+          pv: afterResult.pv,
+          fen: tempChess.fen(),
+          moveNumber: Math.floor(tempChess.moveNumber()),
+          color: move.color,
+        };
+        
+        analysis.push(moveAnalysis);
+        prevEval = afterResult.eval;
+      }
+
+      set({
+        chess: new Chess(chess.fen()),
+        moveHistory: analysis,
+        currentMoveIndex: analysis.length - 1,
+        isAnalyzing: false,
+      });
+    } catch (error) {
+      console.error('Game analysis error:', error);
+      set({ isAnalyzing: false });
+    }
+  },
+
+  undoMove: () => {
+    const { chess } = get();
+    chess.undo();
+    set({ 
+      chess: new Chess(chess.fen()),
+      moveHistory: get().moveHistory.slice(0, -1),
+      currentMoveIndex: get().currentMoveIndex - 1,
+    });
+  },
+
+  resetGame: () => {
+    set({
+      chess: new Chess(),
+      moveHistory: [],
+      currentMoveIndex: -1,
+      evaluationHistory: [],
+    });
+  },
+
+  goToMove: (index: number) => {
+    const { moveHistory } = get();
+    if (index >= -1 && index < moveHistory.length) {
+      const chess = new Chess();
+      
+      for (let i = 0; i <= index; i++) {
+        const move = moveHistory[i];
+        chess.move({ from: move.from, to: move.to });
+      }
+      
+      set({
+        chess: new Chess(chess.fen()),
+        currentMoveIndex: index,
+      });
+    }
+  },
+
+  setEngineSettings: (settings) => {
+    set({ engineSettings: { ...get().engineSettings, ...settings } });
+  },
+
+  makeEngineMove: async () => {
+    const { chess, engineSettings } = get();
+    
+    try {
+      const bestMove = await stockfishEngine.getEngineMove(chess.fen(), engineSettings.skill);
+      
+      if (bestMove && bestMove.length >= 4) {
+        const from = bestMove.substring(0, 2);
+        const to = bestMove.substring(2, 4);
+        const promotion = bestMove.length > 4 ? bestMove[4] : undefined;
+        
+        await get().makeMove(from, to, promotion);
+      }
+    } catch (error) {
+      console.error('Engine move error:', error);
+    }
+  },
+
+  setTheme: (theme) => {
+    set({ theme: { ...get().theme, ...theme } });
+  },
+
+  createOnlineRoom: async () => {
+    const roomId = Math.random().toString(36).substring(7);
+    set({
+      onlineRoom: {
+        roomId,
+        playerColor: 'white',
+        opponentConnected: false,
+      },
+    });
+    return roomId;
+  },
+
+  joinOnlineRoom: async (roomId: string) => {
+    set({
+      onlineRoom: {
+        roomId,
+        playerColor: 'black',
+        opponentConnected: true,
+      },
+    });
+  },
+
+  loadPGN: (pgn: string) => {
+    const chess = new Chess();
+    try {
+      chess.loadPgn(pgn);
+      const moves = chess.history({ verbose: true });
+      const analysis: MoveAnalysis[] = moves.map((move, index) => ({
+        move: move.san,
+        from: move.from,
+        to: move.to,
+        san: move.san,
+        eval: 0,
+        label: 'good' as const,
+        cp: 0,
+        fen: '',
+        moveNumber: Math.floor(index / 2) + 1,
+        color: move.color,
+      }));
+      
+      set({
+        chess: new Chess(chess.fen()),
+        moveHistory: analysis,
+        currentMoveIndex: analysis.length - 1,
+      });
+    } catch (error) {
+      console.error('Invalid PGN:', error);
+    }
+  },
+}));
