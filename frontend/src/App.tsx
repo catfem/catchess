@@ -7,6 +7,7 @@ import { GameControls } from './components/GameControls';
 import { PGNImport } from './components/PGNImport';
 import { OnlineRoom } from './components/OnlineRoom';
 import { ThemeToggle } from './components/ThemeToggle';
+import { StockfishStatus } from './components/StockfishStatus';
 import { useGameStore } from './store/gameStore';
 
 function App() {
@@ -101,6 +102,8 @@ function App() {
           </p>
         </footer>
       </div>
+      
+      <StockfishStatus />
     </div>
   );
 }

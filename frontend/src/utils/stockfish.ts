@@ -4,31 +4,73 @@ class StockfishEngine {
   private worker: Worker | null = null;
   private ready: boolean = false;
   private messageQueue: Array<(data: any) => void> = [];
+  private loadingError: string | null = null;
 
   async init(): Promise<void> {
     if (this.worker) return;
 
-    return new Promise((resolve) => {
-      // Use stockfish.js from CDN or local
-      this.worker = new Worker('/stockfish.js');
-      
-      this.worker.onmessage = (e) => {
-        const message = e.data;
+    return new Promise((resolve, reject) => {
+      try {
+        // Use stockfish.js from CDN or local
+        this.worker = new Worker('/stockfish.js');
         
-        if (message === 'readyok') {
-          this.ready = true;
-          resolve();
-        }
+        let initTimeout = setTimeout(() => {
+          this.loadingError = 'Stockfish initialization timeout. Please refresh the page.';
+          console.error(this.loadingError);
+          reject(new Error(this.loadingError));
+        }, 30000); // 30 second timeout
+        
+        this.worker.onerror = (error) => {
+          clearTimeout(initTimeout);
+          this.loadingError = 'Failed to load Stockfish worker. Please check your internet connection.';
+          console.error('Stockfish worker error:', error);
+          reject(error);
+        };
+        
+        this.worker.onmessage = (e) => {
+          const message = e.data;
+          
+          // Handle info messages from Stockfish
+          if (typeof message === 'string' && message.includes('info string')) {
+            console.log('Stockfish:', message);
+            
+            if (message.includes('ERROR') || message.includes('Failed to load from all sources')) {
+              clearTimeout(initTimeout);
+              this.loadingError = 'Failed to download Stockfish engine. Please check your internet connection and refresh.';
+              reject(new Error(this.loadingError));
+              return;
+            }
+          }
+          
+          if (message === 'readyok') {
+            clearTimeout(initTimeout);
+            this.ready = true;
+            console.log('Stockfish engine ready');
+            resolve();
+          }
 
-        if (this.messageQueue.length > 0) {
-          const callback = this.messageQueue.shift();
-          if (callback) callback(message);
-        }
-      };
+          if (this.messageQueue.length > 0) {
+            const callback = this.messageQueue.shift();
+            if (callback) callback(message);
+          }
+        };
 
-      this.sendCommand('uci');
-      this.sendCommand('isready');
+        this.sendCommand('uci');
+        this.sendCommand('isready');
+      } catch (error) {
+        this.loadingError = 'Failed to initialize Stockfish. Please refresh the page.';
+        console.error('Init error:', error);
+        reject(error);
+      }
     });
+  }
+  
+  getLoadingError(): string | null {
+    return this.loadingError;
+  }
+  
+  isReady(): boolean {
+    return this.ready;
   }
 
   private sendCommand(command: string): void {

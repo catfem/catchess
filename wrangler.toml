@@ -14,6 +14,16 @@ binding = "DB"
 database_name = "catchess-db"
 database_id = "local"  # Replace with your D1 database ID after running: wrangler d1 create catchess-db
 
+# Durable Objects for WebSocket support
+[[durable_objects.bindings]]
+name = "CHESS_ROOM"
+class_name = "ChessRoom"
+script_name = "catchess"
+
+[[migrations]]
+tag = "v1"
+new_classes = ["ChessRoom"]
+
 [site]
 bucket = "./frontend/dist"
 

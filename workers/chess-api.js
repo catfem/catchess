@@ -1,7 +1,23 @@
+import { ChessRoom } from './durable-objects/ChessRoom.js';
+
+export { ChessRoom };
+
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
     const path = url.pathname;
+    
+    // Handle WebSocket connections through Durable Objects
+    if (path.startsWith('/ws/room/')) {
+      const roomId = path.split('/')[3];
+      if (!roomId) {
+        return new Response('Room ID required', { status: 400 });
+      }
+      
+      const id = env.CHESS_ROOM.idFromName(roomId);
+      const roomObject = env.CHESS_ROOM.get(id);
+      return roomObject.fetch(request);
+    }
 
     const corsHeaders = {
       'Access-Control-Allow-Origin': '*',
