@@ -12,13 +12,10 @@ export class ChessRoom {
 
   async fetch(request) {
     const url = new URL(request.url);
-
-    if (url.pathname === '/websocket') {
-      const upgradeHeader = request.headers.get('Upgrade');
-      if (!upgradeHeader || upgradeHeader !== 'websocket') {
-        return new Response('Expected websocket', { status: 426 });
-      }
-
+    const upgradeHeader = request.headers.get('Upgrade');
+    
+    // Handle WebSocket upgrade for any path under this Durable Object
+    if (upgradeHeader && upgradeHeader.toLowerCase() === 'websocket') {
       const webSocketPair = new WebSocketPair();
       const [client, server] = Object.values(webSocketPair);
 
@@ -30,7 +27,18 @@ export class ChessRoom {
       });
     }
 
-    return new Response('Not found', { status: 404 });
+    // Return room info for GET requests
+    if (request.method === 'GET') {
+      return new Response(JSON.stringify({
+        players: Array.from(this.gameState.players.values()),
+        fen: this.gameState.fen,
+        moveCount: this.gameState.moves.length,
+      }), {
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+
+    return new Response('Expected websocket connection', { status: 400 });
   }
 
   async handleSession(webSocket) {

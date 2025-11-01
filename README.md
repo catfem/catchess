@@ -58,6 +58,7 @@ Every move is analyzed by Stockfish 17 and labeled based on quality:
 
 ### Prerequisites
 - Node.js 18+ and npm
+- Internet connection (for Stockfish CDN download)
 - (Optional) Cloudflare account for deployment
 
 ### Installation
@@ -78,13 +79,18 @@ cd ../backend && npm install
 ### Development
 
 ```bash
-# Run both frontend and backend concurrently
+# Easy way - use the startup script
+./start-dev.sh
+
+# Or run manually:
 npm run dev
 
 # Or run separately:
 npm run dev:frontend  # Frontend on http://localhost:3000
 npm run dev:backend   # Backend on http://localhost:3001
 ```
+
+**Note**: On first load, Stockfish engine will download from CDN (~2-5MB). This may take 10-30 seconds. A loading indicator will show progress.
 
 ### Build for Production
 
@@ -292,6 +298,48 @@ function labelMove(userMove, engineMove, userEval, prevEval) {
 ### Chess Engine
 - **Stockfish 17** - Via CDN (stockfish.js)
 - UCI protocol communication
+
+## 🔧 Troubleshooting
+
+### Stockfish Not Loading
+
+If the Stockfish engine fails to load:
+
+1. **Check Internet Connection** - Stockfish downloads from CDN on first use
+2. **Disable Ad-Blockers** - May block CDN requests
+3. **Try Different Browser** - Chrome/Firefox recommended
+4. **Clear Browser Cache** - Ctrl+Shift+Delete
+5. **Check Console** - Open F12 and look for error messages
+
+See `public/STOCKFISH_SETUP.md` for detailed troubleshooting.
+
+### Workers Not Found
+
+If you see "workers not found" errors:
+
+1. Verify files exist: `ls workers/`
+2. Check `wrangler.toml` configuration
+3. Run `wrangler dev` for local testing
+4. See `WORKERS_GUIDE.md` for detailed documentation
+
+### Backend Connection Issues
+
+If the backend won't start:
+
+```bash
+cd backend
+npm install
+npm run dev
+```
+
+Check for port conflicts (default: 3001)
+
+### General Issues
+
+- Run `npm run install:all` to ensure all dependencies are installed
+- Check that Node.js 18+ is installed: `node --version`
+- Review `FIXES_APPLIED.md` for recent bug fixes
+- Open browser console (F12) for error details
 
 ## 🤝 Contributing
 
