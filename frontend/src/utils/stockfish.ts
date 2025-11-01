@@ -3,7 +3,7 @@ import { MoveLabel } from '../types';
 class StockfishEngine {
   private worker: Worker | null = null;
   private ready: boolean = false;
-  private messageQueue: Array<(data: string) => void> = [];
+  private currentCallback: ((data: string) => void) | null = null;
   private loadingError: string | null = null;
 
   async init(): Promise<void> {
@@ -47,11 +47,12 @@ class StockfishEngine {
             this.ready = true;
             console.log('Stockfish engine ready');
             resolve();
+            return;
           }
 
-          if (this.messageQueue.length > 0) {
-            const callback = this.messageQueue.shift();
-            if (callback) callback(message);
+          // Route messages to the current callback
+          if (this.currentCallback) {
+            this.currentCallback(message);
           }
         };
 
@@ -115,13 +116,14 @@ class StockfishEngine {
             const moveMatch = data.match(/bestmove (\S+)/);
             if (moveMatch) {
               bestMove = moveMatch[1];
+              this.currentCallback = null; // Clear callback after completion
               resolve({ bestMove, eval: evaluation, pv, cp, mate });
             }
           }
         }
       };
 
-      this.messageQueue.push(callback);
+      this.currentCallback = callback;
       this.sendCommand(`position fen ${fen}`);
       this.sendCommand(`go depth ${depth}`);
     });
