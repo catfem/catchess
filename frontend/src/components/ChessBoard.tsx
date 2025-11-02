@@ -2,11 +2,17 @@ import { useState } from 'react';
 import { Chessboard } from 'react-chessboard';
 import { useGameStore } from '../store/gameStore';
 import { Square } from 'chess.js';
+import { PieceLabelBadge } from './PieceLabelBadge';
 
 export function ChessBoard() {
-  const { chess, makeMove, gameMode, playerColor } = useGameStore();
+  const { chess, makeMove, gameMode, playerColor, moveHistory, currentMoveIndex } = useGameStore();
   const [selectedSquare, setSelectedSquare] = useState<Square | null>(null);
   const [optionSquares, setOptionSquares] = useState<Record<string, { background: string; borderRadius?: string }>>({});
+  
+  // Get the current move's label and destination square
+  const currentMove = moveHistory[currentMoveIndex >= 0 ? currentMoveIndex : moveHistory.length - 1];
+  const currentLabel = currentMove?.label || null;
+  const toSquare = currentMove?.to || null;
 
   // Calculate legal moves for a given square
   const getMoveOptions = (square: Square) => {
@@ -90,7 +96,13 @@ export function ChessBoard() {
   const boardOrientation = gameMode === 'vs-engine' ? playerColor : 'white';
 
   return (
-    <div className="w-full aspect-square max-w-[600px] mx-auto">
+    <div className="relative w-full aspect-square max-w-[600px] mx-auto">
+      <PieceLabelBadge 
+        label={currentLabel} 
+        toSquare={toSquare}
+        boardOrientation={boardOrientation}
+        moveNumber={moveHistory.length}
+      />
       <Chessboard
         position={chess.fen()}
         onPieceDrop={onDrop}

@@ -85,6 +85,10 @@ class StockfishEngine {
       await this.init();
     }
 
+    // Determine whose turn it is from the FEN (second field)
+    const fenParts = fen.split(' ');
+    const sideToMove = fenParts[1]; // 'w' or 'b'
+
     return new Promise((resolve) => {
       let bestMove = '';
       let evaluation = 0;
@@ -101,14 +105,24 @@ class StockfishEngine {
 
             if (cpMatch) {
               cp = parseInt(cpMatch[1]);
-              // Stockfish ALWAYS returns evaluation from White's perspective
-              // Positive = White advantage, Negative = Black advantage
+              // Stockfish returns evaluation from the perspective of the side to move
+              // Positive = side to move has advantage, Negative = opponent has advantage
+              // We need to convert this to ALWAYS be from White's perspective
+              // If it's Black's turn, invert the sign to get White's perspective
+              if (sideToMove === 'b') {
+                cp = -cp;
+              }
               evaluation = cp / 100;
             }
             if (mateMatch) {
               mate = parseInt(mateMatch[1]);
-              // Mate scores: positive = White mates, negative = Black mates
+              // Mate scores from side to move perspective: positive = side mates, negative = gets mated
+              // Convert to White's perspective
               evaluation = mate > 0 ? 100 : -100;
+              if (sideToMove === 'b') {
+                evaluation = -evaluation;
+                mate = -mate; // Also invert mate value for consistency
+              }
             }
             if (pvMatch) {
               pv = pvMatch[1].split(' ');
@@ -153,61 +167,142 @@ class StockfishEngine {
 
 export const stockfishEngine = new StockfishEngine();
 
+function cpToWinProbability(cp: number): number {
+  const k = 0.004;
+  return 1 / (1 + Math.exp(-k * cp));
+}
+
 export function labelMove(
   userMove: string,
   engineMove: string,
-  currentEval: number,     // Always from White's perspective (+ = White advantage)
-  prevEval: number,        // Always from White's perspective (+ = White advantage)
+  E_after_played: number,  // Eval after player's move (from White's perspective)
+  E_after_best: number,    // Eval after engine's best move (from White's perspective)
   isBookMove: boolean = false,
-  playerColor: 'w' | 'b' = 'w'
+  playerColor: 'w' | 'b' = 'w',
+  isMate?: boolean,
+  _mateIn?: number
 ): MoveLabel {
   if (isBookMove) return 'book';
 
-  // IMPORTANT: Evaluations are ALWAYS from White's perspective
-  // Positive values = White has advantage
-  // Negative values = Black has advantage
-  // 
-  // For move labeling, we need to calculate evaluation LOSS from the player's perspective
-  // For Black, we invert the change because:
-  // - If eval goes from -2.00 to -1.50, Black's position got worse (less advantage)
-  const colorMultiplier = playerColor === 'w' ? 1 : -1;
+  // IMPORTANT: Both evaluations are from White's perspective
+  // Positive = White advantage, Negative = Black advantage
   
-  // Calculate evaluation loss from the player's perspective
-  const evalChange = (currentEval - prevEval) * colorMultiplier;
-  const evalLossCp = -evalChange * 100; // Positive = player lost advantage, Negative = player gained
+  // Calculate delta_cp (centipawn loss from player's perspective)
+  // For White: delta_cp = E_after_best - E_after_played
+  // For Black: delta_cp = (-E_after_best) - (-E_after_played) = E_after_played - E_after_best
+  let delta_cp: number;
+  if (playerColor === 'w') {
+    delta_cp = (E_after_best - E_after_played) * 100;
+  } else {
+    // For Black, we need to invert because lower (more negative) is better for Black
+    delta_cp = (E_after_played - E_after_best) * 100;
+  }
   
-  // Check if user played the best move
+  // Convert to win probabilities for scale-invariant comparison
+  // Note: cp must be from the player's perspective for proper probability calculation
+  let P_best: number, P_played: number;
+  if (playerColor === 'w') {
+    P_best = cpToWinProbability(E_after_best * 100);
+    P_played = cpToWinProbability(E_after_played * 100);
+  } else {
+    // For Black, invert the evals before calculating probability
+    P_best = cpToWinProbability(-E_after_best * 100);
+    P_played = cpToWinProbability(-E_after_played * 100);
+  }
+  const delta_p = P_best - P_played;
+  
+  // Special case: Mate scores
+  if (isMate || Math.abs(E_after_best) >= 90 || Math.abs(E_after_played) >= 90) {
+    const playerBestEval = playerColor === 'w' ? E_after_best : -E_after_best;
+    const playerPlayedEval = playerColor === 'w' ? E_after_played : -E_after_played;
+    
+    // Lost a forced mate (had mate, now don't)
+    if (playerBestEval >= 9.0 && playerPlayedEval < 0) {
+      return 'blunder';
+    }
+    
+    // Missed a forced mate (had mate, now only winning)
+    if (playerBestEval >= 9.0 && playerPlayedEval >= 0 && playerPlayedEval < 3.0) {
+      return 'miss';
+    }
+    
+    // Found the only saving move from getting mated
+    if (userMove === engineMove && playerBestEval >= -0.5 && playerPlayedEval >= -0.5) {
+      // Best move saves from mate, and player found it
+      return 'brilliant';
+    }
+  }
+  
+  // Brilliant move detection
+  const playerBestEval = playerColor === 'w' ? E_after_best : -E_after_best;
+  const playerPlayedEval = playerColor === 'w' ? E_after_played : -E_after_played;
+  
+  // Brilliant criteria 1: Saved a lost position
+  // Position was losing badly, now it's drawable/holdable
+  if (playerPlayedEval >= -0.5 && playerBestEval < -1.5 && delta_cp < 25) {
+    return 'brilliant';
+  }
+  
+  // Brilliant criteria 2: Sacrifice leading to great advantage
+  // The move could be the engine move OR a different move, but:
+  // - Current position improves significantly (sacrifice pays off)
+  // - Sacrifice detected by: move is not engine's top choice BUT still excellent
+  // - Gains significant advantage (player eval jumps significantly)
+  // This handles cases where player sacrifices material for a winning attack
+  const evalImprovement = playerPlayedEval - playerBestEval; // How much better is played move from player's POV
+  const isSignificantGain = evalImprovement >= 2.0; // Gains 2+ pawns worth of advantage
+  const isCloseToOrBetterThanEngine = delta_cp <= 15; // Move is nearly as good or better than engine
+  
+  if (isSignificantGain && isCloseToOrBetterThanEngine && playerPlayedEval >= 1.5) {
+    // Sacrifice that leads to winning advantage
+    return 'brilliant';
+  }
+  
+  // Brilliant criteria 3: Only move that maintains balance/saves position
+  // The played move matches engine and position was critical
+  if (userMove === engineMove && Math.abs(playerBestEval) <= 0.3 && delta_cp < 5) {
+    // Found the only good move in a sharp position
+    const positionWasCritical = Math.abs(E_after_best) < 0.5 && Math.abs(E_after_played) < 0.5;
+    if (positionWasCritical) {
+      return 'brilliant';
+    }
+  }
+  
+  // Best move: Player played what the engine recommended
   if (userMove === engineMove) {
     return 'best';
   }
-
-  // Small evaluation change - still best or near-best
-  if (evalLossCp <= 20) {
-    return 'best';
+  
+  // Apply dual thresholds (centipawn OR win-probability, whichever is more lenient)
+  // This prevents over-penalizing in already-decided positions
+  
+  // Blunder: Decisive error (ΔP ≥ 30% OR Δcp ≥ 300)
+  if (delta_p >= 0.30 || delta_cp >= 300) {
+    return 'blunder';
   }
-
-  // Very good move
-  if (evalLossCp <= 50) {
-    return 'great';
-  }
-
-  // Good move
-  if (evalLossCp <= 100) {
-    return 'good';
-  }
-
-  // Inaccuracy
-  if (evalLossCp <= 150) {
-    return 'inaccuracy';
-  }
-
-  // Mistake
-  if (evalLossCp <= 250) {
+  
+  // Mistake: Major error (ΔP ≥ 20% OR Δcp ≥ 100)
+  if (delta_p >= 0.20 || delta_cp >= 100) {
     return 'mistake';
   }
-
-  // Blunder
-  return 'blunder';
+  
+  // Inaccuracy: Noticeable slip (ΔP ≥ 10% OR Δcp ≥ 50)
+  if (delta_p >= 0.10 || delta_cp >= 50) {
+    return 'inaccuracy';
+  }
+  
+  // Good: Minor acceptable loss (ΔP ≥ 5% OR Δcp ≥ 25)
+  if (delta_p >= 0.05 || delta_cp >= 25) {
+    return 'good';
+  }
+  
+  // Excellent: Very slight loss (ΔP ≥ 2% OR Δcp ≥ 10)
+  if (delta_p >= 0.02 || delta_cp >= 10) {
+    return 'excellent';
+  }
+  
+  // Near-perfect or equal to best
+  return 'best';
 }
 
 export function getMoveColor(label: MoveLabel): string {
