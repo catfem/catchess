@@ -93,27 +93,35 @@ export function MoveLabelIcon({ label, size = 20 }: MoveLabelIconProps) {
   // Use external image if available, otherwise use SVG
   if (useExternalImage) {
     return (
-      <div className="flex items-center justify-center">
+      <div className="flex items-center justify-center" style={{ width: size, height: size }}>
         <img 
           src={imagePaths[label]} 
           alt={`${label} move`}
           width={size}
           height={size}
-          style={{ width: size, height: size }}
+          style={{ 
+            width: size, 
+            height: size,
+            objectFit: 'contain'
+          }}
           onError={(e) => {
             // Fallback to SVG if image fails to load
+            console.log(`Failed to load image for ${label}, falling back to SVG`);
             const target = e.target as HTMLImageElement;
             target.style.display = 'none';
             const svgContainer = target.nextElementSibling as HTMLElement;
             if (svgContainer) svgContainer.style.display = 'flex';
           }}
+          onLoad={() => {
+            console.log(`Successfully loaded image for ${label}`);
+          }}
         />
-        <div style={{ display: 'none' }} className="flex items-center justify-center">
+        <div style={{ display: 'none', width: size, height: size }} className="flex items-center justify-center">
           {svgIcons[label]}
         </div>
       </div>
     );
   }
 
-  return <div className="flex items-center justify-center">{svgIcons[label]}</div>;
+  return <div className="flex items-center justify-center" style={{ width: size, height: size }}>{svgIcons[label]}</div>;
 }
