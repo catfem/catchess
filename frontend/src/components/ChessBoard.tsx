@@ -3,15 +3,17 @@ import { Chessboard } from 'react-chessboard';
 import { useGameStore } from '../store/gameStore';
 import { Square } from 'chess.js';
 import { MoveLabel } from './MoveLabel';
+import { PieceLabelBadge } from './PieceLabelBadge';
 
 export function ChessBoard() {
   const { chess, makeMove, gameMode, playerColor, moveHistory, currentMoveIndex } = useGameStore();
   const [selectedSquare, setSelectedSquare] = useState<Square | null>(null);
   const [optionSquares, setOptionSquares] = useState<Record<string, { background: string; borderRadius?: string }>>({});
   
-  // Get the current move's label
+  // Get the current move's label and destination square
   const currentMove = moveHistory[currentMoveIndex >= 0 ? currentMoveIndex : moveHistory.length - 1];
   const currentLabel = currentMove?.label || null;
+  const toSquare = currentMove?.to || null;
 
   // Calculate legal moves for a given square
   const getMoveOptions = (square: Square) => {
@@ -97,6 +99,12 @@ export function ChessBoard() {
   return (
     <div className="relative w-full aspect-square max-w-[600px] mx-auto">
       <MoveLabel label={currentLabel} moveNumber={moveHistory.length} />
+      <PieceLabelBadge 
+        label={currentLabel} 
+        toSquare={toSquare}
+        boardOrientation={boardOrientation}
+        moveNumber={moveHistory.length}
+      />
       <Chessboard
         position={chess.fen()}
         onPieceDrop={onDrop}

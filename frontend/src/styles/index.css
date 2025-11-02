@@ -221,4 +221,34 @@ body {
   .animate-fade-in-out {
     animation: slideInRight 0.4s ease-out, fadeOut 0.5s ease-in 2s forwards;
   }
+  
+  /* Piece label badge animations */
+  @keyframes badgePop {
+    0% {
+      opacity: 0;
+      transform: scale(0.3);
+    }
+    50% {
+      transform: scale(1.1);
+    }
+    100% {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+  
+  @keyframes badgeFadeOut {
+    from {
+      opacity: 1;
+      transform: scale(1);
+    }
+    to {
+      opacity: 0;
+      transform: scale(0.8);
+    }
+  }
+  
+  .animate-badge-pop {
+    animation: badgePop 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55), badgeFadeOut 0.4s ease-in 1.4s forwards;
+  }
 }
