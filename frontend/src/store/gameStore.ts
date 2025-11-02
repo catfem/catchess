@@ -158,11 +158,19 @@ export const useGameStore = create<GameStore>((set, get) => ({
       const analysis: MoveAnalysis[] = [];
       
       const tempChess = new Chess();
-      let prevEval = 0;
 
       for (const move of moves) {
         const beforeMove = tempChess.fen();
         const result = await stockfishEngine.getBestMove(beforeMove, 15);
+        
+        // Get evaluation after playing the best move (what it SHOULD have been)
+        const tempChessForBest = new Chess(beforeMove);
+        const bestMoveFrom = result.bestMove.substring(0, 2);
+        const bestMoveTo = result.bestMove.substring(2, 4);
+        const bestMovePromo = result.bestMove.length > 4 ? result.bestMove[4] : undefined;
+        tempChessForBest.move({ from: bestMoveFrom, to: bestMoveTo, promotion: bestMovePromo });
+        const bestMoveResult = await stockfishEngine.getBestMove(tempChessForBest.fen(), 15);
+        const evalAfterBestMove = bestMoveResult.eval;
         
         tempChess.move(move);
         const afterResult = await stockfishEngine.getBestMove(tempChess.fen(), 15);
@@ -177,7 +185,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
             move.from + move.to,
             result.bestMove,
             afterResult.eval,
-            prevEval,
+            evalAfterBestMove, // Compare to eval after best move
             false, // Book move detection not yet implemented
             move.color,
             afterResult.mate !== undefined,
@@ -193,7 +201,6 @@ export const useGameStore = create<GameStore>((set, get) => ({
         };
         
         analysis.push(moveAnalysis);
-        prevEval = afterResult.eval;
       }
 
       set({
@@ -346,6 +353,15 @@ export const useGameStore = create<GameStore>((set, get) => ({
           engineSettings.depth
         );
         
+        // Get evaluation after playing the best move (what it SHOULD have been)
+        const tempChessForBest = new Chess(item.fenBefore);
+        const bestMoveFrom = beforeResult.bestMove.substring(0, 2);
+        const bestMoveTo = beforeResult.bestMove.substring(2, 4);
+        const bestMovePromo = beforeResult.bestMove.length > 4 ? beforeResult.bestMove[4] : undefined;
+        tempChessForBest.move({ from: bestMoveFrom, to: bestMoveTo, promotion: bestMovePromo });
+        const bestMoveResult = await stockfishEngine.getBestMove(tempChessForBest.fen(), engineSettings.depth);
+        const evalAfterBestMove = bestMoveResult.eval;
+        
         // Get evaluation after the user's move
         const afterResult = await stockfishEngine.getBestMove(
           item.fenAfter, 
@@ -355,8 +371,6 @@ export const useGameStore = create<GameStore>((set, get) => ({
         // Update the move analysis
         const updatedHistory = [...get().moveHistory];
         if (updatedHistory[item.moveIndex]) {
-          const prevEval = item.moveIndex > 0 ? updatedHistory[item.moveIndex - 1].eval : 0;
-          
           // Store evaluation from White's perspective (Stockfish convention)
           // Positive = White advantage, Negative = Black advantage
           updatedHistory[item.moveIndex] = {
@@ -371,7 +385,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
               item.move,
               beforeResult.bestMove,
               afterResult.eval,
-              prevEval,
+              evalAfterBestMove, // Compare to eval after best move, not previous move
               false, // Book move detection not yet implemented
               item.color,
               afterResult.mate !== undefined,
