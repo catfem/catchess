@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { Chessboard } from 'react-chessboard';
 import { useGameStore } from '../store/gameStore';
 import { Square } from 'chess.js';
-import { MoveLabel } from './MoveLabel';
 import { PieceLabelBadge } from './PieceLabelBadge';
 
 export function ChessBoard() {
@@ -98,7 +97,6 @@ export function ChessBoard() {
 
   return (
     <div className="relative w-full aspect-square max-w-[600px] mx-auto">
-      <MoveLabel label={currentLabel} moveNumber={moveHistory.length} />
       <PieceLabelBadge 
         label={currentLabel} 
         toSquare={toSquare}
