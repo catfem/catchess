@@ -1,20 +1,25 @@
 // Book move detection using ECO database
 // ECO (Encyclopedia of Chess Openings) database contains known opening positions
 
+interface EcoEntry {
+  src: string;
+  eco: string;
+  moves: string;
+  name: string;
+  aliases?: Record<string, string>;
+  scid?: string;
+  rootSrc?: string;
+}
+
 interface EcoData {
-  [fen: string]: {
-    src: string;
-    eco: string;
-    moves: string;
-    name: string;
-    [key: string]: any;
-  };
+  [fen: string]: EcoEntry;
 }
 
 class BookMovesDetector {
   private ecoData: EcoData | null = null;
   private loading: boolean = false;
   private loadPromise: Promise<void> | null = null;
+  private positionCache: Map<string, boolean> = new Map(); // Cache for faster lookups
 
   /**
    * Load the ECO database
@@ -65,11 +70,39 @@ class BookMovesDetector {
       return false;
     }
 
-    // FEN string might have different move counts or en passant fields
-    // We need to normalize it to just position + side to move
-    const normalizedFen = this.normalizeFen(fen);
+    // Check cache first
+    if (this.positionCache.has(fen)) {
+      return this.positionCache.get(fen)!;
+    }
+
+    let isBook = false;
+
+    // Try exact match first
+    if (fen in this.ecoData) {
+      isBook = true;
+    } else {
+      // FEN string might have different move counts, so try without those
+      // ECO database uses FEN format: position side castling ep halfmove fullmove
+      // We'll try matching with just the key parts
+      const parts = fen.split(' ');
+      if (parts.length >= 4) {
+        // Try with first 4 parts (position, side, castling, en passant)
+        const keyParts = parts.slice(0, 4).join(' ');
+        
+        // Check all entries with matching key parts
+        for (const ecoFen in this.ecoData) {
+          const ecoKeyParts = ecoFen.split(' ').slice(0, 4).join(' ');
+          if (keyParts === ecoKeyParts) {
+            isBook = true;
+            break;
+          }
+        }
+      }
+    }
     
-    return normalizedFen in this.ecoData;
+    // Cache the result
+    this.positionCache.set(fen, isBook);
+    return isBook;
   }
 
   /**

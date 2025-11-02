@@ -233,13 +233,39 @@ export function labelMove(
     }
   }
   
-  // Brilliant move: Saved a lost position (not mate related)
+  // Brilliant move detection
   const playerBestEval = playerColor === 'w' ? E_after_best : -E_after_best;
   const playerPlayedEval = playerColor === 'w' ? E_after_played : -E_after_played;
   
-  // Position was losing, now it's drawable/holdable, and loss was minimal
+  // Brilliant criteria 1: Saved a lost position
+  // Position was losing badly, now it's drawable/holdable
   if (playerPlayedEval >= -0.5 && playerBestEval < -1.5 && delta_cp < 25) {
     return 'brilliant';
+  }
+  
+  // Brilliant criteria 2: Sacrifice leading to great advantage
+  // The move could be the engine move OR a different move, but:
+  // - Current position improves significantly (sacrifice pays off)
+  // - Sacrifice detected by: move is not engine's top choice BUT still excellent
+  // - Gains significant advantage (player eval jumps significantly)
+  // This handles cases where player sacrifices material for a winning attack
+  const evalImprovement = playerPlayedEval - playerBestEval; // How much better is played move from player's POV
+  const isSignificantGain = evalImprovement >= 2.0; // Gains 2+ pawns worth of advantage
+  const isCloseToOrBetterThanEngine = delta_cp <= 15; // Move is nearly as good or better than engine
+  
+  if (isSignificantGain && isCloseToOrBetterThanEngine && playerPlayedEval >= 1.5) {
+    // Sacrifice that leads to winning advantage
+    return 'brilliant';
+  }
+  
+  // Brilliant criteria 3: Only move that maintains balance/saves position
+  // The played move matches engine and position was critical
+  if (userMove === engineMove && Math.abs(playerBestEval) <= 0.3 && delta_cp < 5) {
+    // Found the only good move in a sharp position
+    const positionWasCritical = Math.abs(E_after_best) < 0.5 && Math.abs(E_after_played) < 0.5;
+    if (positionWasCritical) {
+      return 'brilliant';
+    }
   }
   
   // Best move: Player played what the engine recommended
