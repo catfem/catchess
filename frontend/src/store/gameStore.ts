@@ -179,7 +179,9 @@ export const useGameStore = create<GameStore>((set, get) => ({
             afterResult.eval,
             prevEval,
             tempChess.moveNumber() <= 10,
-            move.color
+            move.color,
+            afterResult.mate !== undefined,
+            afterResult.mate
           ),
           cp: afterResult.cp || 0,
           mate: afterResult.mate,
@@ -371,7 +373,9 @@ export const useGameStore = create<GameStore>((set, get) => ({
               afterResult.eval,
               prevEval,
               item.moveIndex < 20, // Consider first 20 moves as opening
-              item.color
+              item.color,
+              afterResult.mate !== undefined,
+              afterResult.mate
             ),
           };
           
