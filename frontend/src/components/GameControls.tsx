@@ -100,14 +100,14 @@ export function GameControls() {
             <input
               type="range"
               min="10"
-              max="20"
+              max="99"
               value={engineSettings.depth}
               onChange={(e) => setEngineSettings({ depth: parseInt(e.target.value) })}
               className="w-full h-2 bg-[#2b2926] rounded-lg appearance-none cursor-pointer accent-blue-600"
             />
             <div className="flex justify-between text-xs text-gray-500 mt-1">
-              <span>Faster</span>
-              <span>Deeper</span>
+              <span>Faster (10)</span>
+              <span>Deeper (99)</span>
             </div>
           </div>
         )}

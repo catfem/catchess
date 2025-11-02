@@ -23,19 +23,21 @@ Every move is analyzed by Stockfish 17 and labeled based on quality:
 
 | Label | Icon | Color | Criteria |
 |-------|------|-------|----------|
-| **Brilliant** | ‼ | 🟩 Teal | Exceptional tactical move avoiding significant loss |
-| **Great Move** | ! | 🟦 Blue | Within 50cp of engine best |
+| **Brilliant** | ‼ | 🟩 Teal | Exceptional tactical move gaining significant advantage |
+| **Excellent** | ! | 🟦 Blue | Within 20cp of engine best (≤0.2 pawn) |
+| **Great Move** | ! | 🟦 Blue | Within 50cp of engine best (≤0.5 pawn) |
 | **Best Move** | ✓ | ⚪ Gray | Matches engine's top move |
+| **Good Move** | ○ | 🟢 Green | 50-100cp loss (0.5-1.0 pawn) |
 | **Book Move** | 📖 | 🟧 Orange | Found in opening theory |
-| **Inaccuracy** | ?! | 🟨 Yellow | Small deviation from best |
-| **Mistake** | ? | 🟧 Orange | -100 to -250cp vs best |
-| **Blunder** | ?? | 🟥 Red | Worse than -250cp |
+| **Inaccuracy** | ?! | 🟨 Yellow | 50-100cp loss (0.5-1.0 pawn) |
+| **Mistake** | ? | 🟧 Orange | 100-200cp loss (1.0-2.0 pawns) |
+| **Blunder** | ?? | 🟥 Red | Worse than 200cp (>2.0 pawns) |
 
 ### Engine Integration
 - **Stockfish 17** via locally bundled WASM (no CDN required)
 - UCI protocol communication
 - Real-time position evaluation
-- Adjustable depth (1-20) and skill level
+- Adjustable depth (1-99) and skill level
 - Multi-PV support for analysis
 
 ### Online Multiplayer
@@ -190,7 +192,7 @@ Modify in `frontend/src/store/gameStore.ts`:
 ```typescript
 engineSettings: {
   enabled: true,      // Enable/disable analysis
-  depth: 18,          // Analysis depth (1-20)
+  depth: 99,          // Analysis depth (1-99)
   skill: 20,          // AI skill level (0-20)
   multiPv: 1,         // Number of variations
   threads: 1,         // CPU threads
@@ -260,15 +262,17 @@ The labeling system analyzes each move by comparing:
 
 ```javascript
 function labelMove(userMove, engineMove, userEval, prevEval) {
-  const deltaCp = Math.abs((userEval - prevEval) * 100);
-  const evalLoss = (prevEval - userEval) * 100;
+  const evalLoss = (prevEval - userEval) * 100; // In centipawns
 
   if (isBookMove) return 'book';
   if (userMove === engineMove) return 'best';
-  if (deltaCp <= 50) return 'great';
-  if (evalLoss >= 250) return 'blunder';
-  if (evalLoss >= 100) return 'mistake';
-  return 'good';
+  if (evalLoss < -100) return 'brilliant'; // Significant gain
+  if (evalLoss <= 20) return 'excellent';
+  if (evalLoss <= 50) return 'great';
+  if (evalLoss < 100) return 'good';
+  if (evalLoss <= 100) return 'inaccuracy';
+  if (evalLoss <= 200) return 'mistake';
+  return 'blunder';
 }
 ```
 

@@ -51,7 +51,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
   processingQueue: false,
   engineSettings: {
     enabled: true,
-    depth: 18,
+    depth: 99,
     skill: 20,
     multiPv: 1,
     threads: 1,

@@ -80,7 +80,7 @@ class StockfishEngine {
     }
   }
 
-  async getBestMove(fen: string, depth: number = 20): Promise<{ bestMove: string; eval: number; pv: string[]; cp?: number; mate?: number }> {
+  async getBestMove(fen: string, depth: number = 99): Promise<{ bestMove: string; eval: number; pv: string[]; cp?: number; mate?: number }> {
     if (!this.worker || !this.ready) {
       await this.init();
     }
@@ -176,37 +176,45 @@ export function labelMove(
   const evalChange = (currentEval - prevEval) * colorMultiplier;
   const evalLossCp = -evalChange * 100; // Positive = player lost advantage, Negative = player gained
   
-  // Check if user played the best move
+  // Check if user played the best move (exact match)
   if (userMove === engineMove) {
     return 'best';
   }
 
-  // Small evaluation change - still best or near-best
-  if (evalLossCp <= 20) {
-    return 'best';
+  // Brilliant move: exceptional tactical move that results in significant gain
+  // Usually a non-obvious move that wins material or avoids significant loss
+  // Detected when the move is not the "best" but results in a strong evaluation gain
+  if (evalLossCp < -100) {
+    // Player gained significant advantage with a non-best move (likely a brilliant sacrifice or tactic)
+    return 'brilliant';
   }
 
-  // Very good move
+  // Excellent: ≤ 0.2 difference (≤ 20 centipawns)
+  if (evalLossCp <= 20) {
+    return 'excellent';
+  }
+
+  // Great Move: ≤ 0.5 difference (≤ 50 centipawns)
   if (evalLossCp <= 50) {
     return 'great';
   }
 
-  // Good move
-  if (evalLossCp <= 100) {
+  // Good move: just over 50cp but still decent
+  if (evalLossCp < 100) {
     return 'good';
   }
 
-  // Inaccuracy
-  if (evalLossCp <= 150) {
+  // Inaccuracy: 0.5 – 1.0 (50-100 centipawns)
+  if (evalLossCp <= 100) {
     return 'inaccuracy';
   }
 
-  // Mistake
-  if (evalLossCp <= 250) {
+  // Mistake: 1.0 – 2.0 (100-200 centipawns)
+  if (evalLossCp <= 200) {
     return 'mistake';
   }
 
-  // Blunder
+  // Blunder: > 2.0 (> 200 centipawns)
   return 'blunder';
 }
 
