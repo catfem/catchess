@@ -1,22 +1,23 @@
 import { useEffect, useState } from 'react';
 import { MoveLabel as MoveLabelType } from '../types';
+import { MoveLabelIcon } from './MoveLabelIcon';
 
 interface MoveLabelProps {
   label: MoveLabelType | null;
   moveNumber?: number;
 }
 
-const labelConfig: Record<MoveLabelType, { bg: string; text: string; icon: string }> = {
-  brilliant: { bg: '#FFD700', text: '#000', icon: '✨' },
-  best: { bg: '#22C55E', text: '#fff', icon: '✅' },
-  excellent: { bg: '#4ADE80', text: '#fff', icon: '👍' },
-  great: { bg: '#3B82F6', text: '#fff', icon: '!' },
-  good: { bg: '#2DD4BF', text: '#fff', icon: '✔' },
-  inaccuracy: { bg: '#F97316', text: '#000', icon: '⚠' },
-  mistake: { bg: '#EF4444', text: '#fff', icon: '❌' },
-  blunder: { bg: '#991B1B', text: '#fff', icon: '💀' },
-  miss: { bg: '#9333EA', text: '#fff', icon: '😢' },
-  book: { bg: '#6B7280', text: '#fff', icon: '📘' },
+const labelConfig: Record<MoveLabelType, { bg: string; text: string }> = {
+  brilliant: { bg: '#FFD700', text: '#000' },
+  best: { bg: '#22C55E', text: '#fff' },
+  excellent: { bg: '#4ADE80', text: '#fff' },
+  great: { bg: '#3B82F6', text: '#fff' },
+  good: { bg: '#2DD4BF', text: '#fff' },
+  inaccuracy: { bg: '#F97316', text: '#000' },
+  mistake: { bg: '#EF4444', text: '#fff' },
+  blunder: { bg: '#991B1B', text: '#fff' },
+  miss: { bg: '#9333EA', text: '#fff' },
+  book: { bg: '#6B7280', text: '#fff' },
 };
 
 const labelText: Record<MoveLabelType, string> = {
@@ -75,7 +76,7 @@ export function MoveLabel({ label, moveNumber }: MoveLabelProps) {
           animation: 'slideInRight 0.4s ease-out, fadeOut 0.5s ease-in 2s forwards',
         }}
       >
-        <span className="text-lg">{config.icon}</span>
+        <MoveLabelIcon label={currentLabel} size={20} />
         <span className="text-base">{labelText[currentLabel]}</span>
       </div>
     </div>

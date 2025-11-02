@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { MoveLabel as MoveLabelType } from '../types';
+import { MoveLabelIcon } from './MoveLabelIcon';
 
 interface PieceLabelBadgeProps {
   label: MoveLabelType | null;
@@ -8,17 +9,17 @@ interface PieceLabelBadgeProps {
   moveNumber?: number;
 }
 
-const labelConfig: Record<MoveLabelType, { icon: string; bg: string }> = {
-  brilliant: { icon: '✨', bg: '#FFD700' },
-  best: { icon: '✅', bg: '#22C55E' },
-  excellent: { icon: '👍', bg: '#4ADE80' },
-  great: { icon: '!', bg: '#3B82F6' },
-  good: { icon: '✔', bg: '#2DD4BF' },
-  inaccuracy: { icon: '⚠', bg: '#F97316' },
-  mistake: { icon: '❌', bg: '#EF4444' },
-  blunder: { icon: '💀', bg: '#991B1B' },
-  miss: { icon: '😢', bg: '#9333EA' },
-  book: { icon: '📘', bg: '#6B7280' },
+const labelConfig: Record<MoveLabelType, { bg: string; iconColor: string }> = {
+  brilliant: { bg: '#FFD700', iconColor: '#000000' },
+  best: { bg: '#22C55E', iconColor: '#FFFFFF' },
+  excellent: { bg: '#4ADE80', iconColor: '#FFFFFF' },
+  great: { bg: '#3B82F6', iconColor: '#FFFFFF' },
+  good: { bg: '#2DD4BF', iconColor: '#FFFFFF' },
+  inaccuracy: { bg: '#F97316', iconColor: '#000000' },
+  mistake: { bg: '#EF4444', iconColor: '#FFFFFF' },
+  blunder: { bg: '#991B1B', iconColor: '#FFFFFF' },
+  miss: { bg: '#9333EA', iconColor: '#FFFFFF' },
+  book: { bg: '#6B7280', iconColor: '#FFFFFF' },
 };
 
 // Convert square notation (e.g., "e4") to board coordinates
@@ -92,11 +93,11 @@ export function PieceLabelBadge({ label, toSquare, boardOrientation, moveNumber 
           height: '32px',
           backgroundColor: config.bg,
           border: '2px solid rgba(255, 255, 255, 0.9)',
-          fontSize: '18px',
+          color: config.iconColor,
           animation: 'badgePop 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55), badgeFadeOut 0.4s ease-in 1.4s forwards',
         }}
       >
-        {config.icon}
+        <MoveLabelIcon label={currentLabel} size={18} />
       </div>
     </div>
   );
