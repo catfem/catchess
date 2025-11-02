@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { Chess } from 'chess.js';
 import { GameMode, MoveAnalysis, EngineSettings, OnlineRoom, ThemeSettings, EvaluationData } from '../types';
 import { stockfishEngine, labelMove } from '../utils/stockfish';
+import { bookMovesDetector } from '../utils/bookMoves';
 
 interface AnalysisQueueItem {
   moveIndex: number;
@@ -175,6 +176,9 @@ export const useGameStore = create<GameStore>((set, get) => ({
         tempChess.move(move);
         const afterResult = await stockfishEngine.getBestMove(tempChess.fen(), 15);
         
+        // Check if this position is a book move
+        const isBookMove = bookMovesDetector.isBookPosition(beforeMove);
+        
         const moveAnalysis: MoveAnalysis = {
           move: move.san,
           from: move.from,
@@ -186,7 +190,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
             result.bestMove,
             afterResult.eval,
             evalAfterBestMove, // Compare to eval after best move
-            false, // Book move detection not yet implemented
+            isBookMove, // Use ECO book move detection
             move.color,
             afterResult.mate !== undefined,
             afterResult.mate
@@ -368,6 +372,9 @@ export const useGameStore = create<GameStore>((set, get) => ({
           engineSettings.depth
         );
         
+        // Check if this position is a book move
+        const isBookMove = bookMovesDetector.isBookPosition(item.fenBefore);
+        
         // Update the move analysis
         const updatedHistory = [...get().moveHistory];
         if (updatedHistory[item.moveIndex]) {
@@ -386,7 +393,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
               beforeResult.bestMove,
               afterResult.eval,
               evalAfterBestMove, // Compare to eval after best move, not previous move
-              false, // Book move detection not yet implemented
+              isBookMove, // Use ECO book move detection
               item.color,
               afterResult.mate !== undefined,
               afterResult.mate
