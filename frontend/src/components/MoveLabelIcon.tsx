@@ -5,8 +5,26 @@ interface MoveLabelIconProps {
   size?: number;
 }
 
+// Try to use external images first, fallback to SVG if not available
+const useExternalImage = true; // Set to false to use SVG icons
+
 export function MoveLabelIcon({ label, size = 20 }: MoveLabelIconProps) {
-  const icons: Record<MoveLabel, JSX.Element> = {
+  // External image paths (can be updated to use actual hosted images)
+  const imagePaths: Record<MoveLabel, string> = {
+    brilliant: '/icons/brilliant.svg',
+    best: '/icons/best.svg',
+    excellent: '/icons/excellent.svg',
+    great: '/icons/great.svg',
+    good: '/icons/good.svg',
+    inaccuracy: '/icons/inaccuracy.svg',
+    mistake: '/icons/mistake.svg',
+    blunder: '/icons/blunder.svg',
+    miss: '/icons/miss.svg',
+    book: '/icons/book.svg',
+  };
+
+  // Fallback SVG icons
+  const svgIcons: Record<MoveLabel, JSX.Element> = {
     brilliant: (
       <svg width={size} height={size} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
         <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" 
@@ -72,5 +90,30 @@ export function MoveLabelIcon({ label, size = 20 }: MoveLabelIconProps) {
     ),
   };
 
-  return <div className="flex items-center justify-center">{icons[label]}</div>;
+  // Use external image if available, otherwise use SVG
+  if (useExternalImage) {
+    return (
+      <div className="flex items-center justify-center">
+        <img 
+          src={imagePaths[label]} 
+          alt={`${label} move`}
+          width={size}
+          height={size}
+          style={{ width: size, height: size }}
+          onError={(e) => {
+            // Fallback to SVG if image fails to load
+            const target = e.target as HTMLImageElement;
+            target.style.display = 'none';
+            const svgContainer = target.nextElementSibling as HTMLElement;
+            if (svgContainer) svgContainer.style.display = 'flex';
+          }}
+        />
+        <div style={{ display: 'none' }} className="flex items-center justify-center">
+          {svgIcons[label]}
+        </div>
+      </div>
+    );
+  }
+
+  return <div className="flex items-center justify-center">{svgIcons[label]}</div>;
 }
