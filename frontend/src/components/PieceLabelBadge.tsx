@@ -9,19 +9,6 @@ interface PieceLabelBadgeProps {
   moveNumber?: number;
 }
 
-const labelConfig: Record<MoveLabelType, { bg: string; iconColor: string }> = {
-  brilliant: { bg: '#FFD700', iconColor: '#000000' },
-  best: { bg: '#22C55E', iconColor: '#FFFFFF' },
-  excellent: { bg: '#4ADE80', iconColor: '#FFFFFF' },
-  great: { bg: '#3B82F6', iconColor: '#FFFFFF' },
-  good: { bg: '#2DD4BF', iconColor: '#FFFFFF' },
-  inaccuracy: { bg: '#F97316', iconColor: '#000000' },
-  mistake: { bg: '#EF4444', iconColor: '#FFFFFF' },
-  blunder: { bg: '#991B1B', iconColor: '#FFFFFF' },
-  miss: { bg: '#9333EA', iconColor: '#FFFFFF' },
-  book: { bg: '#6B7280', iconColor: '#FFFFFF' },
-};
-
 // Convert square notation (e.g., "e4") to board coordinates
 function getSquarePosition(square: string, orientation: 'white' | 'black'): { row: number; col: number } {
   const file = square.charCodeAt(0) - 'a'.charCodeAt(0); // 0-7 (a-h)
@@ -66,7 +53,6 @@ export function PieceLabelBadge({ label, toSquare, boardOrientation, moveNumber 
     return null;
   }
 
-  const config = labelConfig[currentLabel];
   const { row, col } = getSquarePosition(currentSquare, boardOrientation);
   
   // Calculate position as percentage (each square is 12.5% of board)
@@ -85,19 +71,16 @@ export function PieceLabelBadge({ label, toSquare, boardOrientation, moveNumber 
       }}
     >
       <div
-        className="absolute flex items-center justify-center rounded-full shadow-lg animate-badge-pop"
+        className="absolute flex items-center justify-center animate-badge-pop"
         style={{
           top: '5%',
           right: '5%',
           width: '32px',
           height: '32px',
-          backgroundColor: config.bg,
-          border: '2px solid rgba(255, 255, 255, 0.9)',
-          color: config.iconColor,
           animation: 'badgePop 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55), badgeFadeOut 0.4s ease-in 1.4s forwards',
         }}
       >
-        <MoveLabelIcon label={currentLabel} size={18} />
+        <MoveLabelIcon label={currentLabel} size={32} />
       </div>
     </div>
   );
