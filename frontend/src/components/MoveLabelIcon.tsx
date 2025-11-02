@@ -9,18 +9,18 @@ interface MoveLabelIconProps {
 const useExternalImage = true; // Set to false to use SVG icons
 
 export function MoveLabelIcon({ label, size = 20 }: MoveLabelIconProps) {
-  // External image paths (can be updated to use actual hosted images)
+  // External image paths from GitHub
   const imagePaths: Record<MoveLabel, string> = {
-    brilliant: '/icons/brilliant.svg',
-    best: '/icons/best.svg',
-    excellent: '/icons/excellent.svg',
-    great: '/icons/great.svg',
-    good: '/icons/good.svg',
-    inaccuracy: '/icons/inaccuracy.svg',
-    mistake: '/icons/mistake.svg',
-    blunder: '/icons/blunder.svg',
-    miss: '/icons/miss.svg',
-    book: '/icons/book.svg',
+    brilliant: 'https://github.com/user-attachments/assets/1010fb7d-04ff-449c-acd0-cce74e4f2d09',
+    best: 'https://github.com/user-attachments/assets/4b59410a-afb2-4151-aeee-7ff83488ddc7',
+    excellent: 'https://github.com/user-attachments/assets/284c397f-93d5-41b4-ad45-04d6813de1e2', // "ok" image
+    great: 'https://github.com/user-attachments/assets/a41ec3c2-caf6-4113-89c1-d5e89d0b0e11',
+    good: 'https://github.com/user-attachments/assets/a9553ea0-7578-44b3-9a93-37d12b8a17ba',
+    inaccuracy: 'https://github.com/user-attachments/assets/333ff6f7-35b2-4393-84ed-08a61dfc0961', // "inaccurate" image
+    mistake: 'https://github.com/user-attachments/assets/c71870f4-066c-48da-9d86-480a2b212381',
+    blunder: 'https://github.com/user-attachments/assets/a1c632f0-30a4-4253-b091-e71db00b007f',
+    miss: 'https://github.com/user-attachments/assets/5c6dffa0-fa09-4057-88a2-be9383fab7b7',
+    book: 'https://github.com/user-attachments/assets/6bd0c479-ed4b-4594-b629-36873a392f4a',
   };
 
   // Fallback SVG icons
