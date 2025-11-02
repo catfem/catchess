@@ -85,6 +85,10 @@ class StockfishEngine {
       await this.init();
     }
 
+    // Determine whose turn it is from the FEN (second field)
+    const fenParts = fen.split(' ');
+    const sideToMove = fenParts[1]; // 'w' or 'b'
+
     return new Promise((resolve) => {
       let bestMove = '';
       let evaluation = 0;
@@ -101,14 +105,24 @@ class StockfishEngine {
 
             if (cpMatch) {
               cp = parseInt(cpMatch[1]);
-              // Stockfish ALWAYS returns evaluation from White's perspective
-              // Positive = White advantage, Negative = Black advantage
+              // Stockfish returns evaluation from the perspective of the side to move
+              // Positive = side to move has advantage, Negative = opponent has advantage
+              // We need to convert this to ALWAYS be from White's perspective
+              // If it's Black's turn, invert the sign to get White's perspective
+              if (sideToMove === 'b') {
+                cp = -cp;
+              }
               evaluation = cp / 100;
             }
             if (mateMatch) {
               mate = parseInt(mateMatch[1]);
-              // Mate scores: positive = White mates, negative = Black mates
+              // Mate scores from side to move perspective: positive = side mates, negative = gets mated
+              // Convert to White's perspective
               evaluation = mate > 0 ? 100 : -100;
+              if (sideToMove === 'b') {
+                evaluation = -evaluation;
+                mate = -mate; // Also invert mate value for consistency
+              }
             }
             if (pvMatch) {
               pv = pvMatch[1].split(' ');
