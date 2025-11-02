@@ -178,7 +178,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
             result.bestMove,
             afterResult.eval,
             prevEval,
-            tempChess.moveNumber() <= 10,
+            false, // Book move detection not yet implemented
             move.color,
             afterResult.mate !== undefined,
             afterResult.mate
@@ -372,7 +372,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
               beforeResult.bestMove,
               afterResult.eval,
               prevEval,
-              item.moveIndex < 20, // Consider first 20 moves as opening
+              false, // Book move detection not yet implemented
               item.color,
               afterResult.mate !== undefined,
               afterResult.mate
