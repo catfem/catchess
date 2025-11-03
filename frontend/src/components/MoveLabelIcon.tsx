@@ -9,6 +9,7 @@ export function MoveLabelIcon({ label, size = 20 }: MoveLabelIconProps) {
   // Use local image paths from public/icons directory
   const imagePaths: Record<MoveLabel, string> = {
     brilliant: '/icons/brilliant.png',
+    critical: '/icons/critical.png',
     best: '/icons/best.png',
     excellent: '/icons/excellent.png',
     great: '/icons/great.png',
@@ -18,6 +19,8 @@ export function MoveLabelIcon({ label, size = 20 }: MoveLabelIconProps) {
     blunder: '/icons/blunder.png',
     miss: '/icons/miss.png',
     book: '/icons/book.png',
+    forced: '/icons/forced.png',
+    risky: '/icons/risky.png',
   };
 
   return (

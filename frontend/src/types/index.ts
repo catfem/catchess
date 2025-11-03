@@ -2,6 +2,7 @@ export type GameMode = 'analyze' | 'vs-engine';
 
 export type MoveLabel = 
   | 'brilliant' 
+  | 'critical'
   | 'great' 
   | 'best' 
   | 'excellent'
@@ -10,7 +11,9 @@ export type MoveLabel =
   | 'inaccuracy' 
   | 'mistake' 
   | 'miss'
-  | 'blunder';
+  | 'blunder'
+  | 'forced'
+  | 'risky';
 
 export interface MoveAnalysis {
   move: string;

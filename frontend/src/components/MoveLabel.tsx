@@ -9,6 +9,7 @@ interface MoveLabelProps {
 
 const labelConfig: Record<MoveLabelType, { bg: string; text: string }> = {
   brilliant: { bg: '#FFD700', text: '#000' },
+  critical: { bg: '#5b8baf', text: '#fff' },
   best: { bg: '#22C55E', text: '#fff' },
   excellent: { bg: '#4ADE80', text: '#fff' },
   great: { bg: '#3B82F6', text: '#fff' },
@@ -18,10 +19,13 @@ const labelConfig: Record<MoveLabelType, { bg: string; text: string }> = {
   blunder: { bg: '#991B1B', text: '#fff' },
   miss: { bg: '#9333EA', text: '#fff' },
   book: { bg: '#6B7280', text: '#fff' },
+  forced: { bg: '#97af8b', text: '#000' },
+  risky: { bg: '#8983ac', text: '#fff' },
 };
 
 const labelText: Record<MoveLabelType, string> = {
   brilliant: 'Brilliant!',
+  critical: 'Critical',
   best: 'Best Move',
   excellent: 'Excellent',
   great: 'Great',
@@ -31,6 +35,8 @@ const labelText: Record<MoveLabelType, string> = {
   blunder: 'Blunder',
   miss: 'Missed Win',
   book: 'Book Move',
+  forced: 'Forced',
+  risky: 'Risky',
 };
 
 export function MoveLabel({ label, moveNumber }: MoveLabelProps) {

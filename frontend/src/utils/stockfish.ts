@@ -180,8 +180,14 @@ export function labelMove(
   isBookMove: boolean = false,
   playerColor: 'w' | 'b' = 'w',
   isMate?: boolean,
-  _mateIn?: number
+  _mateIn?: number,
+  legalMoveCount?: number  // Number of legal moves available (for FORCED detection)
 ): MoveLabel {
+  // Detect FORCED moves: only 1 legal move available
+  if (legalMoveCount === 1) {
+    return 'forced';
+  }
+
   if (isBookMove) return 'book';
 
   // IMPORTANT: Both evaluations are from White's perspective
@@ -279,6 +285,18 @@ export function labelMove(
     return 'best';
   }
   
+  // Critical move detection: Player found best move in a critical position
+  // This is when the second-best move would be significantly worse
+  // We approximate this by checking if position is balanced/sharp and player found best
+  // Note: This requires the best move to be critical to maintain the position
+  if (userMove === engineMove && Math.abs(playerBestEval) <= 0.5 && delta_cp < 5) {
+    // Player found the best move in a delicate position
+    // but only if we have mate threats involved
+    if (isMate || Math.abs(E_after_best) >= 90 || Math.abs(E_after_played) >= 90) {
+      return 'critical';
+    }
+  }
+  
   // Apply dual thresholds (centipawn OR win-probability, whichever is more lenient)
   // This prevents over-penalizing in already-decided positions
   
@@ -302,6 +320,17 @@ export function labelMove(
     return 'good';
   }
   
+  // Risky move: Questionable move that gambles on opponent's response
+  // Move loses some advantage but has practical/tactical chances
+  // Detected when: move is not best but maintains decent chances
+  if (delta_p > 0.02 && delta_p < 0.05) {
+    // In a won/winning position, these moves are acceptable
+    // In a normal position, they're risky gambles
+    if (playerPlayedEval < 1.5) {
+      return 'risky';
+    }
+  }
+  
   // Excellent: Very slight loss (ΔP ≥ 2% OR Δcp ≥ 10)
   if (delta_p >= 0.02 || delta_cp >= 10) {
     return 'excellent';
@@ -321,6 +350,7 @@ export function labelMove(
 export function getMoveColor(label: MoveLabel): string {
   const colors: Record<MoveLabel, string> = {
     brilliant: '#1abc9c',
+    critical: '#5b8baf',
     great: '#3498db',
     best: '#95a5a6',
     excellent: '#16a085',
@@ -330,6 +360,8 @@ export function getMoveColor(label: MoveLabel): string {
     mistake: '#e67e22',
     miss: '#9b59b6',
     blunder: '#e74c3c',
+    forced: '#97af8b',
+    risky: '#8983ac',
   };
   return colors[label];
 }
@@ -337,7 +369,8 @@ export function getMoveColor(label: MoveLabel): string {
 export function getMoveIcon(label: MoveLabel): string {
   const icons: Record<MoveLabel, string> = {
     brilliant: '‼',
-    great: '!',
+    critical: '!',
+    great: '👍',
     best: '✓',
     excellent: '⚡',
     book: '📖',
@@ -346,6 +379,8 @@ export function getMoveIcon(label: MoveLabel): string {
     mistake: '?',
     miss: '⊘',
     blunder: '??',
+    forced: '⏭',
+    risky: '⚠️',
   };
   return icons[label];
 }
