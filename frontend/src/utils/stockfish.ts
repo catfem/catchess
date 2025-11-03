@@ -307,6 +307,13 @@ export function labelMove(
     return 'excellent';
   }
   
+  // Great move: Very close to best engine line but not in excellent/good range
+  // (ΔEval < 0.02 and Δcp < 10) - essentially imperceptible difference
+  // This catches moves that are virtually identical to engine without hitting excellent
+  if (delta_p > 0.001 || (delta_cp > 0 && delta_cp < 10)) {
+    return 'great';
+  }
+  
   // Near-perfect or equal to best
   return 'best';
 }
