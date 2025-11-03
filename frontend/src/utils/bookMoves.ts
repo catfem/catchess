@@ -17,81 +17,89 @@ interface EcoData {
 
 class BookMovesDetector {
   private ecoData: EcoData = {};
-  private loadedChunks: Set<string> = new Set();
-  private loading: Set<string> = new Set();
-  private loadPromises: Map<string, Promise<void>> = new Map();
+  private loading: boolean = false;
+  private loadPromise: Promise<void> | null = null;
   private positionCache: Map<string, boolean> = new Map(); // Cache for faster lookups
-  private chunkCategories = ['A', 'B', 'C', 'D', 'E']; // ECO categories
+  
+  // CDN URL for eco.json database from https://github.com/hayatbiralem/eco.json
+  private readonly ECO_CDN_URL = 'https://cdn.jsdelivr.net/npm/eco-json@1.0.0/dist/eco_interpolated.json';
 
   /**
-   * Load ECO database chunks on-demand
-   * Uses separate ecoA.json, ecoB.json, etc. for lazy loading (similar to Stockfish chunking)
+   * Load ECO database from CDN
+   * Uses cdn.jsdelivr.net to serve eco.json from https://github.com/hayatbiralem/eco.json
+   * This provides reliable, fast delivery without depending on local server configuration
    */
-  async ensureLoaded(): Promise<void> {
-    // Load all chunks if not already loading/loaded
-    const chunksToLoad = this.chunkCategories.filter(cat => !this.loadedChunks.has(cat) && !this.loading.has(cat));
-    
-    if (chunksToLoad.length === 0) {
-      return; // All chunks already loaded or loading
-    }
-
-    await Promise.all(chunksToLoad.map(cat => this.loadChunk(cat)));
-  }
-
-  private async loadChunk(category: string): Promise<void> {
-    if (this.loadedChunks.has(category)) {
+  async loadDatabase(): Promise<void> {
+    if (Object.keys(this.ecoData).length > 0) {
       return; // Already loaded
     }
 
-    if (this.loading.has(category)) {
+    if (this.loading) {
       // Already loading, wait for it
-      return this.loadPromises.get(category)!;
+      return this.loadPromise!;
     }
 
-    const promise = this.loadChunkInternal(category);
-    this.loadPromises.set(category, promise);
-    this.loading.add(category);
-    
-    return promise;
+    this.loading = true;
+    this.loadPromise = this.loadDatabaseInternal();
+    return this.loadPromise;
   }
 
-  private async loadChunkInternal(category: string): Promise<void> {
+  private async loadDatabaseInternal(): Promise<void> {
     try {
-      console.log(`Loading ECO database chunk ${category}...`);
+      console.log('Loading ECO opening book database from CDN...');
       
-      // Load individual ECO chunks (ecoA.json, ecoB.json, etc.)
-      // This uses lazy loading similar to how Stockfish WASM chunks are loaded
-      const response = await fetch(`/eco${category}.json`);
+      // Use jsdelivr CDN to serve eco_interpolated.json
+      // This is the same database used by eco.json project on GitHub
+      const response = await fetch(this.ECO_CDN_URL);
       
       if (!response.ok) {
-        throw new Error(`Failed to load ECO database chunk ${category}: ${response.statusText}`);
+        throw new Error(`Failed to load ECO database from CDN: ${response.statusText}`);
       }
 
-      const chunkData: EcoData = await response.json();
-      Object.assign(this.ecoData, chunkData);
-      this.loadedChunks.add(category);
-      console.log(`✓ ECO database chunk ${category} loaded: ${Object.keys(chunkData).length} positions`);
+      this.ecoData = await response.json();
+      console.log(`✓ ECO database loaded from CDN: ${Object.keys(this.ecoData).length} positions`);
     } catch (error) {
-      console.error(`Failed to load ECO database chunk ${category}:`, error);
-      // Continue with other chunks, but log the error
+      console.error('Failed to load ECO database from CDN:', error);
+      // Fallback: try loading from local files
+      console.log('Attempting fallback to local ECO database chunks...');
+      await this.loadLocalChunks();
     } finally {
-      this.loading.delete(category);
+      this.loading = false;
     }
   }
 
   /**
-   * Legacy method for compatibility - loads all chunks
+   * Fallback method to load ECO database from local chunked files
+   * Used if CDN is unavailable
    */
-  async loadDatabase(): Promise<void> {
-    return this.ensureLoaded();
+  private async loadLocalChunks(): Promise<void> {
+    const categories = ['A', 'B', 'C', 'D', 'E'];
+    const promises = categories.map(cat => this.loadLocalChunk(cat));
+    await Promise.all(promises);
+  }
+
+  private async loadLocalChunk(category: string): Promise<void> {
+    try {
+      const response = await fetch(`/eco${category}.json`);
+      if (!response.ok) {
+        console.warn(`Failed to load local ECO chunk ${category}: ${response.statusText}`);
+        return;
+      }
+      const chunkData: EcoData = await response.json();
+      Object.assign(this.ecoData, chunkData);
+      console.log(`✓ Local ECO chunk ${category} loaded: ${Object.keys(chunkData).length} positions`);
+    } catch (error) {
+      console.warn(`Failed to load local ECO chunk ${category}:`, error);
+      // Continue with other chunks
+    }
   }
 
   /**
    * Check if a position (FEN) is a known book position
-   * Note: This is synchronous and uses already-loaded data. Call ensureLoaded() first if needed.
+   * Note: This is synchronous and uses already-loaded data
    */
   isBookPosition(fen: string): boolean {
-    if (Object.keys(this.ecoData).length === 0) {
+    if (!this.ecoData || Object.keys(this.ecoData).length === 0) {
       return false; // No data loaded yet
     }
 
@@ -166,7 +174,7 @@ class BookMovesDetector {
    * Check if database is loaded
    */
   isLoaded(): boolean {
-    return this.loadedChunks.size > 0 && this.loading.size === 0;
+    return Object.keys(this.ecoData).length > 0 && !this.loading;
   }
 }
 

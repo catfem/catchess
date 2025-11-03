@@ -1,5 +1,6 @@
 import { useGameStore } from '../store/gameStore';
-import { getMoveColor, getMoveIcon } from '../utils/stockfish';
+import { getMoveColor } from '../utils/stockfish';
+import { MoveLabelIcon } from './MoveLabelIcon';
 
 export function MoveList() {
   const { moveHistory, currentMoveIndex, goToMove, isAnalyzing, analysisQueue, processingQueue } = useGameStore();
@@ -70,15 +71,14 @@ export function MoveList() {
                   </span>
                   
                   {/* Label Icon */}
-                  <span 
-                    className="inline-flex items-center justify-center w-5 h-5 rounded text-xs font-bold"
-                    style={{ 
-                      color: getMoveColor(whiteMove.label),
-                      backgroundColor: `${getMoveColor(whiteMove.label)}20`
-                    }}
-                  >
-                    {getMoveIcon(whiteMove.label)}
-                  </span>
+                   <div
+                     className="inline-flex items-center justify-center w-5 h-5 rounded"
+                     style={{
+                       backgroundColor: `${getMoveColor(whiteMove.label)}20`
+                     }}
+                   >
+                     <MoveLabelIcon label={whiteMove.label} size={18} />
+                   </div>
                   
                   {/* Evaluation */}
                   {whiteMove.eval !== 0 && (
@@ -122,15 +122,14 @@ export function MoveList() {
                     </span>
                     
                     {/* Label Icon */}
-                    <span 
-                      className="inline-flex items-center justify-center w-5 h-5 rounded text-xs font-bold"
-                      style={{ 
-                        color: getMoveColor(blackMove.label),
-                        backgroundColor: `${getMoveColor(blackMove.label)}20`
-                      }}
-                    >
-                      {getMoveIcon(blackMove.label)}
-                    </span>
+                     <div
+                       className="inline-flex items-center justify-center w-5 h-5 rounded"
+                       style={{
+                         backgroundColor: `${getMoveColor(blackMove.label)}20`
+                       }}
+                     >
+                       <MoveLabelIcon label={blackMove.label} size={18} />
+                     </div>
                     
                     {/* Evaluation */}
                     {blackMove.eval !== 0 && (
