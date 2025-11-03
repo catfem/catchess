@@ -45,15 +45,19 @@ export function MoveLabel({ label, moveNumber }: MoveLabelProps) {
   const [fadeKey, setFadeKey] = useState(0);
 
   useEffect(() => {
-    if (label && label !== 'book') {
+    if (label) {
       setCurrentLabel(label);
       setVisible(true);
       setFadeKey(prev => prev + 1);
 
-      // Fade out after 2.5 seconds
+      // Determine fade out time based on move type
+      // Book moves stay longer as they're informational
+      const fadeOutTime = label === 'book' ? 3000 : 2500;
+
+      // Fade out after the specified time
       const timer = setTimeout(() => {
         setVisible(false);
-      }, 2500);
+      }, fadeOutTime);
 
       return () => clearTimeout(timer);
     }

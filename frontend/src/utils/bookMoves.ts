@@ -16,17 +16,21 @@ interface EcoData {
 }
 
 class BookMovesDetector {
-  private ecoData: EcoData | null = null;
+  private ecoData: EcoData = {};
   private loading: boolean = false;
   private loadPromise: Promise<void> | null = null;
   private positionCache: Map<string, boolean> = new Map(); // Cache for faster lookups
+  
+  // CDN URL for eco.json database from https://github.com/hayatbiralem/eco.json
+  private readonly ECO_CDN_URL = 'https://cdn.jsdelivr.net/npm/eco-json@1.0.0/dist/eco_interpolated.json';
 
   /**
-   * Load the ECO database
-   * Uses eco_interpolated.json which contains comprehensive opening data
+   * Load ECO database from CDN
+   * Uses cdn.jsdelivr.net to serve eco.json from https://github.com/hayatbiralem/eco.json
+   * This provides reliable, fast delivery without depending on local server configuration
    */
   async loadDatabase(): Promise<void> {
-    if (this.ecoData !== null) {
+    if (Object.keys(this.ecoData).length > 0) {
       return; // Already loaded
     }
 
@@ -42,33 +46,61 @@ class BookMovesDetector {
 
   private async loadDatabaseInternal(): Promise<void> {
     try {
-      console.log('Loading ECO opening book database...');
+      console.log('Loading ECO opening book database from CDN...');
       
-      // Use eco_interpolated.json from https://github.com/hayatbiralem/eco.json
-      // Contains 3,459 opening positions covering all ECO categories with interpolated variations
-      const response = await fetch('/eco_interpolated.json');
+      // Use jsdelivr CDN to serve eco_interpolated.json
+      // This is the same database used by eco.json project on GitHub
+      const response = await fetch(this.ECO_CDN_URL);
       
       if (!response.ok) {
-        throw new Error(`Failed to load ECO database: ${response.statusText}`);
+        throw new Error(`Failed to load ECO database from CDN: ${response.statusText}`);
       }
 
       this.ecoData = await response.json();
-      console.log(`✓ ECO database loaded: ${Object.keys(this.ecoData!).length} positions`);
+      console.log(`✓ ECO database loaded from CDN: ${Object.keys(this.ecoData).length} positions`);
     } catch (error) {
-      console.error('Failed to load ECO database:', error);
-      // Set to empty object so we don't keep trying to load
-      this.ecoData = {};
+      console.error('Failed to load ECO database from CDN:', error);
+      // Fallback: try loading from local files
+      console.log('Attempting fallback to local ECO database chunks...');
+      await this.loadLocalChunks();
     } finally {
       this.loading = false;
     }
   }
 
   /**
+   * Fallback method to load ECO database from local chunked files
+   * Used if CDN is unavailable
+   */
+  private async loadLocalChunks(): Promise<void> {
+    const categories = ['A', 'B', 'C', 'D', 'E'];
+    const promises = categories.map(cat => this.loadLocalChunk(cat));
+    await Promise.all(promises);
+  }
+
+  private async loadLocalChunk(category: string): Promise<void> {
+    try {
+      const response = await fetch(`/eco${category}.json`);
+      if (!response.ok) {
+        console.warn(`Failed to load local ECO chunk ${category}: ${response.statusText}`);
+        return;
+      }
+      const chunkData: EcoData = await response.json();
+      Object.assign(this.ecoData, chunkData);
+      console.log(`✓ Local ECO chunk ${category} loaded: ${Object.keys(chunkData).length} positions`);
+    } catch (error) {
+      console.warn(`Failed to load local ECO chunk ${category}:`, error);
+      // Continue with other chunks
+    }
+  }
+
+  /**
    * Check if a position (FEN) is a known book position
+   * Note: This is synchronous and uses already-loaded data
    */
   isBookPosition(fen: string): boolean {
-    if (!this.ecoData) {
-      return false;
+    if (!this.ecoData || Object.keys(this.ecoData).length === 0) {
+      return false; // No data loaded yet
     }
 
     // Check cache first
@@ -142,7 +174,7 @@ class BookMovesDetector {
    * Check if database is loaded
    */
   isLoaded(): boolean {
-    return this.ecoData !== null && !this.loading;
+    return Object.keys(this.ecoData).length > 0 && !this.loading;
   }
 }
 

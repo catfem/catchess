@@ -34,16 +34,20 @@ export function PieceLabelBadge({ label, toSquare, boardOrientation, moveNumber 
   const [badgeKey, setBadgeKey] = useState(0);
 
   useEffect(() => {
-    if (label && toSquare && label !== 'book') {
+    if (label && toSquare) {
       setCurrentLabel(label);
       setCurrentSquare(toSquare);
       setVisible(true);
       setBadgeKey(prev => prev + 1);
 
-      // Fade out after 1.8 seconds
+      // Determine fade out time based on move type
+      // Book moves stay longer as they're informational
+      const fadeOutTime = label === 'book' ? 2500 : 1800;
+
+      // Fade out after the specified time
       const timer = setTimeout(() => {
         setVisible(false);
-      }, 1800);
+      }, fadeOutTime);
 
       return () => clearTimeout(timer);
     }
