@@ -16,59 +16,83 @@ interface EcoData {
 }
 
 class BookMovesDetector {
-  private ecoData: EcoData | null = null;
-  private loading: boolean = false;
-  private loadPromise: Promise<void> | null = null;
+  private ecoData: EcoData = {};
+  private loadedChunks: Set<string> = new Set();
+  private loading: Set<string> = new Set();
+  private loadPromises: Map<string, Promise<void>> = new Map();
   private positionCache: Map<string, boolean> = new Map(); // Cache for faster lookups
+  private chunkCategories = ['A', 'B', 'C', 'D', 'E']; // ECO categories
 
   /**
-   * Load the ECO database
-   * Uses eco_interpolated.json which contains comprehensive opening data
+   * Load ECO database chunks on-demand
+   * Uses separate ecoA.json, ecoB.json, etc. for lazy loading (similar to Stockfish chunking)
    */
-  async loadDatabase(): Promise<void> {
-    if (this.ecoData !== null) {
+  async ensureLoaded(): Promise<void> {
+    // Load all chunks if not already loading/loaded
+    const chunksToLoad = this.chunkCategories.filter(cat => !this.loadedChunks.has(cat) && !this.loading.has(cat));
+    
+    if (chunksToLoad.length === 0) {
+      return; // All chunks already loaded or loading
+    }
+
+    await Promise.all(chunksToLoad.map(cat => this.loadChunk(cat)));
+  }
+
+  private async loadChunk(category: string): Promise<void> {
+    if (this.loadedChunks.has(category)) {
       return; // Already loaded
     }
 
-    if (this.loading) {
+    if (this.loading.has(category)) {
       // Already loading, wait for it
-      return this.loadPromise!;
+      return this.loadPromises.get(category)!;
     }
 
-    this.loading = true;
-    this.loadPromise = this.loadDatabaseInternal();
-    return this.loadPromise;
+    const promise = this.loadChunkInternal(category);
+    this.loadPromises.set(category, promise);
+    this.loading.add(category);
+    
+    return promise;
   }
 
-  private async loadDatabaseInternal(): Promise<void> {
+  private async loadChunkInternal(category: string): Promise<void> {
     try {
-      console.log('Loading ECO opening book database...');
+      console.log(`Loading ECO database chunk ${category}...`);
       
-      // Use eco_interpolated.json from https://github.com/hayatbiralem/eco.json
-      // Contains 3,459 opening positions covering all ECO categories with interpolated variations
-      const response = await fetch('/eco_interpolated.json');
+      // Load individual ECO chunks (ecoA.json, ecoB.json, etc.)
+      // This uses lazy loading similar to how Stockfish WASM chunks are loaded
+      const response = await fetch(`/eco${category}.json`);
       
       if (!response.ok) {
-        throw new Error(`Failed to load ECO database: ${response.statusText}`);
+        throw new Error(`Failed to load ECO database chunk ${category}: ${response.statusText}`);
       }
 
-      this.ecoData = await response.json();
-      console.log(`✓ ECO database loaded: ${Object.keys(this.ecoData!).length} positions`);
+      const chunkData: EcoData = await response.json();
+      Object.assign(this.ecoData, chunkData);
+      this.loadedChunks.add(category);
+      console.log(`✓ ECO database chunk ${category} loaded: ${Object.keys(chunkData).length} positions`);
     } catch (error) {
-      console.error('Failed to load ECO database:', error);
-      // Set to empty object so we don't keep trying to load
-      this.ecoData = {};
+      console.error(`Failed to load ECO database chunk ${category}:`, error);
+      // Continue with other chunks, but log the error
     } finally {
-      this.loading = false;
+      this.loading.delete(category);
     }
+  }
+
+  /**
+   * Legacy method for compatibility - loads all chunks
+   */
+  async loadDatabase(): Promise<void> {
+    return this.ensureLoaded();
   }
 
   /**
    * Check if a position (FEN) is a known book position
+   * Note: This is synchronous and uses already-loaded data. Call ensureLoaded() first if needed.
    */
   isBookPosition(fen: string): boolean {
-    if (!this.ecoData) {
-      return false;
+    if (Object.keys(this.ecoData).length === 0) {
+      return false; // No data loaded yet
     }
 
     // Check cache first
@@ -142,7 +166,7 @@ class BookMovesDetector {
    * Check if database is loaded
    */
   isLoaded(): boolean {
-    return this.ecoData !== null && !this.loading;
+    return this.loadedChunks.size > 0 && this.loading.size === 0;
   }
 }
 
