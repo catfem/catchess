@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CatChess - Offline</title>
+    <style>
+      body {
+        font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        background: radial-gradient(circle at top, #0f172a, #020617);
+        color: #e2e8f0;
+        height: 100vh;
+        margin: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .container {
+        max-width: 420px;
+        text-align: center;
+        padding: 2rem;
+        background: rgba(15, 23, 42, 0.85);
+        border-radius: 1.5rem;
+        border: 1px solid rgba(56, 189, 248, 0.2);
+        box-shadow: 0 20px 45px -25px rgba(56, 189, 248, 0.6);
+      }
+
+      .logo {
+        width: 72px;
+        height: 72px;
+        margin: 0 auto 1.5rem;
+        border-radius: 16px;
+        background: linear-gradient(135deg, rgba(56, 189, 248, 0.15), rgba(50, 135, 245, 0.3));
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 2.5rem;
+        color: #38bdf8;
+        border: 1px solid rgba(56, 189, 248, 0.35);
+      }
+
+      h1 {
+        font-size: 1.75rem;
+        margin-bottom: 0.75rem;
+        color: #f8fafc;
+      }
+
+      p {
+        color: #94a3b8;
+        line-height: 1.7;
+        margin-bottom: 1.5rem;
+      }
+
+      .tips {
+        text-align: left;
+        margin: 1.5rem auto 0;
+        padding: 1.25rem 1.25rem 0.75rem;
+        border-radius: 1rem;
+        background: rgba(15, 118, 110, 0.12);
+        border: 1px solid rgba(56, 189, 248, 0.15);
+      }
+
+      .tips h2 {
+        font-size: 1rem;
+        margin: 0 0 0.75rem;
+        color: #5de4c7;
+        text-transform: uppercase;
+        letter-spacing: 0.12em;
+      }
+
+      .tips ul {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+      }
+
+      .tips li {
+        margin-bottom: 0.75rem;
+        color: #cbd5f5;
+        font-size: 0.95rem;
+        display: flex;
+        align-items: start;
+      }
+
+      .tips li span {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        background: rgba(56, 189, 248, 0.18);
+        color: #38bdf8;
+        border-radius: 9999px;
+        width: 1.5rem;
+        height: 1.5rem;
+        font-size: 0.75rem;
+        margin-right: 0.75rem;
+        flex-shrink: 0;
+      }
+
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        padding: 0.75rem 1.5rem;
+        border-radius: 9999px;
+        background: linear-gradient(135deg, rgba(56, 189, 248, 0.85), rgba(56, 189, 248, 0.65));
+        color: #0f172a;
+        text-decoration: none;
+        font-weight: 600;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+        border: none;
+        cursor: pointer;
+      }
+
+      .btn:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 12px 22px -12px rgba(56, 189, 248, 0.75);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="logo">♟️</div>
+      <h1>You're Offline</h1>
+      <p>
+        CatChess is saving your session locally. Once your connection returns, your
+        games and analysis will sync automatically.
+      </p>
+
+      <a class="btn" href="/">Retry Connection</a>
+
+      <div class="tips">
+        <h2>Quick Tips</h2>
+        <ul>
+          <li><span>1</span> Local analysis and puzzles are still available offline.</li>
+          <li><span>2</span> Online games will resume when you're connected again.</li>
+          <li><span>3</span> Bookmarked lessons can be accessed anytime.</li>
+        </ul>
+      </div>
+    </div>
+  </body>
+</html>

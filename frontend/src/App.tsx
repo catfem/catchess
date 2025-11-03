@@ -6,6 +6,7 @@ import { GameControls } from './components/GameControls';
 import { PGNImport } from './components/PGNImport';
 import { StockfishStatus } from './components/StockfishStatus';
 import { OpeningPanel } from './components/OpeningPanel';
+import { ChessClock } from './components/ChessClock';
 import { useGameStore } from './store/gameStore';
 
 function App() {
@@ -151,6 +152,9 @@ function App() {
         {/* Center - Board */}
         <main className="flex-1 flex flex-col items-center justify-center p-4 lg:p-8 bg-[#262421] overflow-auto">
           <div className="w-full max-w-5xl mx-auto">
+            {/* Chess Clock */}
+            <ChessClock initialTime={600} increment={0} />
+            
             <div className="flex items-center justify-center gap-6">
               {/* Evaluation Bar */}
               <div className="hidden lg:block">
