@@ -5,55 +5,62 @@ import fs from 'fs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const dbPath = path.join(__dirname, '..', 'chess_openings.db');
+const ecoPath = path.join(__dirname, '..', '..', 'frontend', 'public', 'eco_interpolated.json');
 
-let db = null;
+console.log('Loading ECO database from:', ecoPath);
+const ecoData = JSON.parse(fs.readFileSync(ecoPath, 'utf8'));
 
-export function initializeDatabase() {
-  db = new Database(dbPath);
+console.log('Opening database at:', dbPath);
+const db = new Database(dbPath);
+
+// Enable foreign keys
+db.pragma('foreign_keys = ON');
+
+// Create openings table (if not exists)
+db.exec(`
+  CREATE TABLE IF NOT EXISTS openings (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL UNIQUE,
+    eco TEXT,
+    fen TEXT,
+    moves TEXT,
+    description TEXT,
+    category TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  )
+`);
+
+// Create indexes
+db.exec(`
+  CREATE INDEX IF NOT EXISTS idx_opening_name ON openings(name);
+  CREATE INDEX IF NOT EXISTS idx_opening_eco ON openings(eco);
+  CREATE INDEX IF NOT EXISTS idx_opening_category ON openings(category);
+`);
+
+// Clear existing data
+console.log('Clearing existing openings...');
+db.exec('DELETE FROM openings');
+
+// Extract unique openings from ECO data
+console.log('Processing ECO data...');
+const openingsMap = new Map();
+
+for (const [fen, entry] of Object.entries(ecoData)) {
+  const key = `${entry.name}|${entry.eco}`;
   
-  // Enable foreign keys
-  db.pragma('foreign_keys = ON');
-  
-  // Create openings table
-  db.exec(`
-    CREATE TABLE IF NOT EXISTS openings (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      name TEXT NOT NULL UNIQUE,
-      eco TEXT,
-      fen TEXT,
-      moves TEXT,
-      description TEXT,
-      category TEXT,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-    )
-  `);
-  
-  // Create index for faster lookups
-  db.exec(`
-    CREATE INDEX IF NOT EXISTS idx_opening_name ON openings(name);
-    CREATE INDEX IF NOT EXISTS idx_opening_eco ON openings(eco);
-    CREATE INDEX IF NOT EXISTS idx_opening_category ON openings(category);
-  `);
-  
-  // Check if data already exists
-  const count = db.prepare('SELECT COUNT(*) as count FROM openings').get();
-  
-  if (count.count === 0) {
-    populateOpeningsDatabase(db);
+  if (!openingsMap.has(key)) {
+    openingsMap.set(key, {
+      name: entry.name,
+      eco: entry.eco,
+      moves: entry.moves,
+      fen: fen,
+    });
   }
-  
-  console.log(`✓ Database initialized with ${count.count} openings`);
-  
-  return db;
 }
 
-export function getDatabase() {
-  if (!db) {
-    throw new Error('Database not initialized. Call initializeDatabase() first.');
-  }
-  return db;
-}
+console.log(`Found ${openingsMap.size} unique openings`);
 
+// Categorize openings based on ECO code and name
 function categorizeOpening(name, eco) {
   const nameLower = name.toLowerCase();
   
@@ -108,6 +115,7 @@ function categorizeOpening(name, eco) {
   }
 }
 
+// Generate description based on opening characteristics
 function generateDescription(name, eco, category, moves) {
   const nameLower = name.toLowerCase();
   
@@ -156,66 +164,71 @@ function generateDescription(name, eco, category, moves) {
   return `A line in the ${category}. ECO code: ${eco}.`;
 }
 
-function populateOpeningsDatabase(db) {
-  // Try to load from ECO JSON file
-  const ecoPath = path.join(__dirname, '..', '..', 'frontend', 'public', 'eco_interpolated.json');
-  
-  if (!fs.existsSync(ecoPath)) {
-    console.warn('ECO database file not found, skipping population');
-    return;
-  }
-  
-  console.log('Loading ECO database from:', ecoPath);
-  const ecoData = JSON.parse(fs.readFileSync(ecoPath, 'utf8'));
-  
-  // Extract unique openings
-  const openingsMap = new Map();
-  
-  for (const [fen, entry] of Object.entries(ecoData)) {
-    const key = `${entry.name}|${entry.eco}`;
+// Prepare insert statement
+const stmt = db.prepare(`
+  INSERT INTO openings (name, eco, fen, moves, category, description)
+  VALUES (?, ?, ?, ?, ?, ?)
+`);
+
+// Insert all openings in a transaction for better performance
+const insertMany = db.transaction((openings) => {
+  let count = 0;
+  for (const opening of openings) {
+    const category = categorizeOpening(opening.name, opening.eco);
+    const description = generateDescription(opening.name, opening.eco, category, opening.moves);
     
-    if (!openingsMap.has(key)) {
-      openingsMap.set(key, {
-        name: entry.name,
-        eco: entry.eco,
-        moves: entry.moves,
-        fen: fen,
-      });
+    try {
+      stmt.run(
+        opening.name,
+        opening.eco,
+        opening.fen,
+        opening.moves,
+        category,
+        description
+      );
+      count++;
+      
+      if (count % 100 === 0) {
+        console.log(`Inserted ${count} openings...`);
+      }
+    } catch (error) {
+      console.error(`Error inserting opening "${opening.name}":`, error.message);
     }
   }
-  
-  console.log(`Processing ${openingsMap.size} unique openings...`);
-  
-  // Prepare insert statement
-  const stmt = db.prepare(`
-    INSERT INTO openings (name, eco, fen, moves, category, description)
-    VALUES (?, ?, ?, ?, ?, ?)
-  `);
-  
-  // Insert all openings in a transaction
-  const insertMany = db.transaction((openings) => {
-    let count = 0;
-    for (const opening of openings) {
-      const category = categorizeOpening(opening.name, opening.eco);
-      const description = generateDescription(opening.name, opening.eco, category, opening.moves);
-      
-      try {
-        stmt.run(
-          opening.name,
-          opening.eco,
-          opening.fen,
-          opening.moves,
-          category,
-          description
-        );
-        count++;
-      } catch (error) {
-        // Skip duplicates
-      }
-    }
-    return count;
-  });
-  
-  const inserted = insertMany([...openingsMap.values()]);
-  console.log(`✓ Inserted ${inserted} openings into database`);
-}
+  return count;
+});
+
+console.log('Inserting openings into database...');
+const inserted = insertMany([...openingsMap.values()]);
+
+console.log(`\n✓ Successfully inserted ${inserted} openings into database`);
+
+// Verify the data
+const countStmt = db.prepare('SELECT COUNT(*) as count FROM openings');
+const { count } = countStmt.get();
+console.log(`Total openings in database: ${count}`);
+
+// Show some statistics
+const categoryStmt = db.prepare(`
+  SELECT category, COUNT(*) as count
+  FROM openings
+  GROUP BY category
+  ORDER BY count DESC
+`);
+
+console.log('\nOpenings by category:');
+const categories = categoryStmt.all();
+categories.forEach(cat => {
+  console.log(`  ${cat.category}: ${cat.count}`);
+});
+
+// Show sample openings
+console.log('\nSample openings:');
+const sampleStmt = db.prepare('SELECT name, eco, category FROM openings LIMIT 10');
+const samples = sampleStmt.all();
+samples.forEach(s => {
+  console.log(`  ${s.eco} - ${s.name} (${s.category})`);
+});
+
+db.close();
+console.log('\nDatabase closed. Done!');

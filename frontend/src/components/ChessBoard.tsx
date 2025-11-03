@@ -3,16 +3,40 @@ import { Chessboard } from 'react-chessboard';
 import { useGameStore } from '../store/gameStore';
 import { Square } from 'chess.js';
 import { PieceLabelBadge } from './PieceLabelBadge';
+import { PromotionDialog } from './PromotionDialog';
+
+type PieceType = 'q' | 'r' | 'b' | 'n';
+
+interface PendingPromotion {
+  from: string;
+  to: string;
+  color: 'w' | 'b';
+}
 
 export function ChessBoard() {
   const { chess, makeMove, gameMode, playerColor, moveHistory, currentMoveIndex } = useGameStore();
   const [selectedSquare, setSelectedSquare] = useState<Square | null>(null);
   const [optionSquares, setOptionSquares] = useState<Record<string, { background: string; borderRadius?: string }>>({});
+  const [pendingPromotion, setPendingPromotion] = useState<PendingPromotion | null>(null);
+  const [promotionDialogPosition, setPromotionDialogPosition] = useState<{ x: number; y: number } | null>(null);
   
   // Get the current move's label and destination square
   const currentMove = moveHistory[currentMoveIndex >= 0 ? currentMoveIndex : moveHistory.length - 1];
   const currentLabel = currentMove?.label || null;
   const toSquare = currentMove?.to || null;
+
+  // Check if a move is a pawn promotion
+  const isPromotion = (from: string, to: string): boolean => {
+    const piece = chess.get(from as Square);
+    if (!piece || piece.type !== 'p') return false;
+    
+    const fromRank = parseInt(from[1]);
+    const toRank = parseInt(to[1]);
+    
+    // White pawn moving to rank 8 or black pawn moving to rank 1
+    return (piece.color === 'w' && fromRank === 7 && toRank === 8) ||
+           (piece.color === 'b' && fromRank === 2 && toRank === 1);
+  };
 
   // Calculate legal moves for a given square
   const getMoveOptions = (square: Square) => {
@@ -45,6 +69,37 @@ export function ChessBoard() {
     return newSquares;
   };
 
+  const handlePromotion = (piece: PieceType) => {
+    if (pendingPromotion) {
+      makeMove(pendingPromotion.from, pendingPromotion.to, piece);
+      setPendingPromotion(null);
+      setPromotionDialogPosition(null);
+    }
+  };
+
+  const attemptMove = (from: string, to: string) => {
+    // Check if this is a promotion move
+    if (isPromotion(from, to)) {
+      const piece = chess.get(from as Square);
+      setPendingPromotion({
+        from,
+        to,
+        color: piece!.color,
+      });
+      
+      // Calculate position for dialog - center of screen
+      setPromotionDialogPosition({
+        x: window.innerWidth / 2,
+        y: window.innerHeight / 2,
+      });
+      return true;
+    }
+    
+    // Regular move (not promotion)
+    makeMove(from, to);
+    return true;
+  };
+
   const onSquareClick = (square: Square) => {
     // If game mode is vs-engine and it's not player's turn, ignore
     if (gameMode === 'vs-engine' && chess.turn() !== playerColor[0]) {
@@ -54,7 +109,7 @@ export function ChessBoard() {
     // If a square is already selected
     if (selectedSquare) {
       // Try to make the move
-      makeMove(selectedSquare, square);
+      attemptMove(selectedSquare, square);
       
       // Clear selection regardless of move success
       setSelectedSquare(null);
@@ -79,7 +134,7 @@ export function ChessBoard() {
       return false;
     }
 
-    makeMove(sourceSquare, targetSquare);
+    attemptMove(sourceSquare, targetSquare);
     
     // Clear selection after drop
     setSelectedSquare(null);
@@ -150,6 +205,13 @@ export function ChessBoard() {
           }
           return piece[0] === chess.turn();
         }}
+      />
+      
+      <PromotionDialog
+        isOpen={pendingPromotion !== null}
+        color={pendingPromotion?.color || 'w'}
+        onSelect={handlePromotion}
+        position={promotionDialogPosition}
       />
     </div>
   );
