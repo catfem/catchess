@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useGameStore } from '../store/gameStore';
 import { openingInfoManager } from '../utils/openingInfo';
-import { getOpeningDescription } from '../utils/openingDescriptions';
+import { openingAPIManager } from '../utils/openingAPI';
 
 export function OpeningPanel() {
   const { chess, moveHistory } = useGameStore();
@@ -9,16 +9,32 @@ export function OpeningPanel() {
   const [openingName, setOpeningName] = useState<string | null>(null);
   const [eco, setEco] = useState<string | null>(null);
   const [description, setDescription] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
-    const updateOpening = () => {
-      // Get opening info from current position
+    const updateOpening = async () => {
+      // Get opening info from ECO database
       const openingInfo = openingInfoManager.getOpeningInfo(chess.fen());
       
       if (openingInfo) {
         setOpeningName(openingInfo.name);
         setEco(openingInfo.eco);
-        setDescription(getOpeningDescription(openingInfo.name));
+        setIsLoading(true);
+        
+        try {
+          // Fetch description from backend SQLite database
+          const details = await openingAPIManager.getOpeningByName(openingInfo.name);
+          if (details && details.description) {
+            setDescription(details.description);
+          } else {
+            setDescription(null);
+          }
+        } catch (error) {
+          console.error('Failed to fetch opening details:', error);
+          setDescription(null);
+        } finally {
+          setIsLoading(false);
+        }
       } else {
         setOpeningName(null);
         setEco(null);
@@ -73,12 +89,14 @@ export function OpeningPanel() {
       {isExpanded && (
         <div className="border-t border-gray-700 p-4 overflow-y-auto flex flex-col gap-3">
           {/* Description */}
-          {description && (
+          {isLoading ? (
+            <div className="text-xs text-gray-400">Loading...</div>
+          ) : description ? (
             <div className="text-xs text-gray-300 leading-relaxed">
               <p className="text-gray-400 font-semibold mb-1">Description</p>
               <p>{description}</p>
             </div>
-          )}
+          ) : null}
           
           {/* Info */}
           <div className="space-y-2 text-xs pt-2 border-t border-gray-700">

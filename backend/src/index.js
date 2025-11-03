@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import { WebSocketServer } from 'ws';
 import { v4 as uuidv4 } from 'uuid';
+import { initializeDatabase, getDatabase } from './database.js';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -9,10 +10,133 @@ const PORT = process.env.PORT || 3001;
 app.use(cors());
 app.use(express.json());
 
+// Initialize database
+initializeDatabase();
+const db = getDatabase();
+
 const rooms = new Map();
 
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', message: 'CatChess Backend API' });
+});
+
+// Opening database endpoints
+app.get('/api/openings/search', (req, res) => {
+  try {
+    const { q } = req.query;
+    if (!q || q.trim().length === 0) {
+      return res.json([]);
+    }
+
+    const searchTerm = `%${q}%`;
+    const stmt = db.prepare(`
+      SELECT id, name, eco, category, description
+      FROM openings
+      WHERE name LIKE ? OR eco LIKE ? OR category LIKE ?
+      ORDER BY name
+      LIMIT 50
+    `);
+    
+    const results = stmt.all(searchTerm, searchTerm, searchTerm);
+    res.json(results);
+  } catch (error) {
+    console.error('Search error:', error);
+    res.status(500).json({ error: 'Failed to search openings' });
+  }
+});
+
+app.get('/api/openings/by-name/:name', (req, res) => {
+  try {
+    const { name } = req.params;
+    const stmt = db.prepare(`
+      SELECT id, name, eco, category, description
+      FROM openings
+      WHERE name = ?
+      LIMIT 1
+    `);
+    
+    const result = stmt.get(name);
+    if (result) {
+      res.json(result);
+    } else {
+      res.status(404).json({ error: 'Opening not found' });
+    }
+  } catch (error) {
+    console.error('Lookup error:', error);
+    res.status(500).json({ error: 'Failed to lookup opening' });
+  }
+});
+
+app.get('/api/openings/by-eco/:eco', (req, res) => {
+  try {
+    const { eco } = req.params;
+    const stmt = db.prepare(`
+      SELECT id, name, eco, category, description
+      FROM openings
+      WHERE eco = ?
+      LIMIT 1
+    `);
+    
+    const result = stmt.get(eco);
+    if (result) {
+      res.json(result);
+    } else {
+      res.status(404).json({ error: 'Opening not found' });
+    }
+  } catch (error) {
+    console.error('Lookup error:', error);
+    res.status(500).json({ error: 'Failed to lookup opening' });
+  }
+});
+
+app.get('/api/openings/list', (req, res) => {
+  try {
+    const { category, limit = 100, offset = 0 } = req.query;
+    let stmt;
+    let params = [];
+
+    if (category) {
+      stmt = db.prepare(`
+        SELECT id, name, eco, category, description
+        FROM openings
+        WHERE category = ?
+        ORDER BY name
+        LIMIT ? OFFSET ?
+      `);
+      params = [category, parseInt(limit), parseInt(offset)];
+    } else {
+      stmt = db.prepare(`
+        SELECT id, name, eco, category, description
+        FROM openings
+        ORDER BY name
+        LIMIT ? OFFSET ?
+      `);
+      params = [parseInt(limit), parseInt(offset)];
+    }
+
+    const results = stmt.all(...params);
+    res.json(results);
+  } catch (error) {
+    console.error('List error:', error);
+    res.status(500).json({ error: 'Failed to list openings' });
+  }
+});
+
+app.get('/api/openings/categories', (req, res) => {
+  try {
+    const stmt = db.prepare(`
+      SELECT DISTINCT category
+      FROM openings
+      ORDER BY category
+    `);
+    
+    const results = stmt.all();
+    const categories = results.map(r => r.category);
+    res.json(categories);
+  } catch (error) {
+    console.error('Categories error:', error);
+    res.status(500).json({ error: 'Failed to get categories' });
+  }
 });
 
 app.post('/api/rooms/create', (req, res) => {
