@@ -75,7 +75,7 @@ export function OpeningPanel() {
           {/* Description */}
           {description && (
             <div className="text-xs text-gray-300 leading-relaxed">
-              <p className="text-gray-400 font-semibold mb-1">📖 Description</p>
+              <p className="text-gray-400 font-semibold mb-1">Description</p>
               <p>{description}</p>
             </div>
           )}
