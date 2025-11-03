@@ -237,9 +237,14 @@ export function labelMove(
   const playerBestEval = playerColor === 'w' ? E_after_best : -E_after_best;
   const playerPlayedEval = playerColor === 'w' ? E_after_played : -E_after_played;
   
+  // Key criterion: Cannot be brilliant if already in a winning position
+  // Brilliant moves must convert difficult/equal positions into winning ones
+  // If already winning, it's just a good move (best, excellent, or good)
+  const wasAlreadyWinning = playerBestEval >= 2.0; // Already significantly winning (2+ pawns)
+  
   // Brilliant criteria 1: Saved a lost position
   // Position was losing badly, now it's drawable/holdable
-  if (playerPlayedEval >= -0.5 && playerBestEval < -1.5 && delta_cp < 25) {
+  if (!wasAlreadyWinning && playerPlayedEval >= -0.5 && playerBestEval < -1.5 && delta_cp < 25) {
     return 'brilliant';
   }
   
@@ -253,14 +258,15 @@ export function labelMove(
   const isSignificantGain = evalImprovement >= 2.0; // Gains 2+ pawns worth of advantage
   const isCloseToOrBetterThanEngine = delta_cp <= 15; // Move is nearly as good or better than engine
   
-  if (isSignificantGain && isCloseToOrBetterThanEngine && playerPlayedEval >= 1.5) {
+  if (!wasAlreadyWinning && isSignificantGain && isCloseToOrBetterThanEngine && playerPlayedEval >= 1.5) {
     // Sacrifice that leads to winning advantage
     return 'brilliant';
   }
   
   // Brilliant criteria 3: Only move that maintains balance/saves position
-  // The played move matches engine and position was critical
-  if (userMove === engineMove && Math.abs(playerBestEval) <= 0.3 && delta_cp < 5) {
+  // The played move matches engine and position was genuinely sharp/critical (not already good)
+  // Must be close to 0 (sharp), not already winning
+  if (!wasAlreadyWinning && userMove === engineMove && playerBestEval <= 0.1 && playerBestEval >= -0.3 && delta_cp < 5) {
     // Found the only good move in a sharp position
     const positionWasCritical = Math.abs(E_after_best) < 0.5 && Math.abs(E_after_played) < 0.5;
     if (positionWasCritical) {

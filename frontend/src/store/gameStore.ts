@@ -176,8 +176,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
         tempChess.move(move);
         const afterResult = await stockfishEngine.getBestMove(tempChess.fen(), 15);
         
-        // Check if this position is a book move
-        const isBookMove = bookMovesDetector.isBookPosition(beforeMove);
+        // Check if the position AFTER this move is a book move
+        const isBookMove = bookMovesDetector.isBookPosition(tempChess.fen());
         
         const moveAnalysis: MoveAnalysis = {
           move: move.san,
@@ -368,12 +368,12 @@ export const useGameStore = create<GameStore>((set, get) => ({
         
         // Get evaluation after the user's move
         const afterResult = await stockfishEngine.getBestMove(
-          item.fenAfter, 
+          item.fenAfter,
           engineSettings.depth
         );
-        
-        // Check if this position is a book move
-        const isBookMove = bookMovesDetector.isBookPosition(item.fenBefore);
+
+        // Check if the position AFTER this move is a book move
+        const isBookMove = bookMovesDetector.isBookPosition(item.fenAfter);
         
         // Update the move analysis
         const updatedHistory = [...get().moveHistory];
