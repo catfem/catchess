@@ -1,31 +1,18 @@
-// Opening API utility - fetches from backend SQLite database
+// Opening API utility - loads directly from ECO JSON for static hosting (Cloudflare Pages)
 
-// Determine API base URL based on current location
-// This function is called dynamically to ensure window is available
-const getAPIBase = () => {
-  // Always use localhost:3001 for backend API in development
-  // In production, the backend should be on port 3001 or use environment variables
-  if (typeof window !== 'undefined' && window.location) {
-    const hostname = window.location.hostname;
-    
-    // Development environment
-    if (hostname === 'localhost' || hostname === '127.0.0.1') {
-      return 'http://localhost:3001';
-    }
-    
-    // Production environment - backend typically runs on a different port or subdomain
-    // Check if there's a custom backend URL in environment
-    if (import.meta.env.VITE_API_BASE_URL) {
-      return import.meta.env.VITE_API_BASE_URL;
-    }
-    
-    // Default: assume backend is on same host but port 3001
-    return `${window.location.protocol}//${hostname}:3001`;
-  }
-  
-  // Fallback for SSR or non-browser environment
-  return 'http://localhost:3001';
-};
+interface EcoEntry {
+  src: string;
+  eco: string;
+  moves: string;
+  name: string;
+  aliases?: Record<string, string>;
+  scid?: string;
+  rootSrc?: string;
+}
+
+interface EcoData {
+  [fen: string]: EcoEntry;
+}
 
 interface OpeningData {
   id?: number;
@@ -33,177 +20,326 @@ interface OpeningData {
   eco: string;
   category?: string;
   description?: string;
+  moves?: string;
+  fen?: string;
+}
+
+// Categorize opening based on ECO code
+function categorizeOpening(name: string, eco: string): string {
+  const nameLower = name.toLowerCase();
+  
+  // Check for gambit
+  if (nameLower.includes('gambit')) {
+    return 'Gambit';
+  }
+  
+  if (!eco) return 'Other';
+  
+  const ecoPrefix = eco.charAt(0);
+  
+  switch (ecoPrefix) {
+    case 'A':
+      if (eco >= 'A00' && eco <= 'A09') return 'Flank Opening';
+      if (eco >= 'A10' && eco <= 'A39') return 'English Opening';
+      if (eco >= 'A40' && eco <= 'A44') return 'Queen\'s Pawn Game';
+      if (eco >= 'A45' && eco <= 'A99') return 'Indian Defense';
+      return 'Flank Opening';
+    
+    case 'B':
+      if (eco >= 'B00' && eco <= 'B09') return 'Unusual King\'s Pawn';
+      if (eco >= 'B10' && eco <= 'B19') return 'Caro-Kann Defense';
+      if (eco >= 'B20' && eco <= 'B99') return 'Sicilian Defense';
+      return 'Semi-Open Game';
+    
+    case 'C':
+      if (eco >= 'C00' && eco <= 'C19') return 'French Defense';
+      if (eco >= 'C20' && eco <= 'C29') return 'Open Game (1.e4 e5) - Gambits';
+      if (eco >= 'C30' && eco <= 'C39') return 'Open Game (1.e4 e5)';
+      if (eco >= 'C40' && eco <= 'C49') return 'Open Game - King\'s Knight';
+      if (eco >= 'C50' && eco <= 'C59') return 'Italian Game';
+      if (eco >= 'C60' && eco <= 'C99') return 'Ruy Lopez';
+      return 'Open Game';
+    
+    case 'D':
+      if (eco >= 'D00' && eco <= 'D05') return 'Closed Game - Systems';
+      if (eco >= 'D06' && eco <= 'D69') return 'Queen\'s Gambit';
+      if (eco >= 'D70' && eco <= 'D99') return 'Grünfeld Defense';
+      return 'Closed Game';
+    
+    case 'E':
+      if (eco >= 'E00' && eco <= 'E09') return 'Catalan Opening';
+      if (eco >= 'E10' && eco <= 'E19') return 'Queen\'s Indian Defense';
+      if (eco >= 'E20' && eco <= 'E59') return 'Nimzo-Indian Defense';
+      if (eco >= 'E60' && eco <= 'E99') return 'King\'s Indian Defense';
+      return 'Indian Defense';
+    
+    default:
+      return 'Other';
+  }
+}
+
+// Generate description based on opening characteristics
+function generateDescription(name: string, eco: string, category: string): string {
+  const nameLower = name.toLowerCase();
+  
+  if (nameLower.includes('gambit')) {
+    return `A gambit variation sacrificing material for rapid development and attacking chances. ECO code: ${eco}.`;
+  }
+  
+  if (nameLower.includes('attack')) {
+    return `An aggressive attacking system in the ${category}. ECO code: ${eco}.`;
+  }
+  
+  if (nameLower.includes('defense') || nameLower.includes('defence')) {
+    return `A solid defensive system in the ${category}. ECO code: ${eco}.`;
+  }
+  
+  if (nameLower.includes('variation')) {
+    return `A variation in the ${category}. ECO code: ${eco}.`;
+  }
+  
+  if (nameLower.includes('counter')) {
+    return `A counterattacking line in the ${category} creating dynamic imbalances. ECO code: ${eco}.`;
+  }
+  
+  if (nameLower.includes('classical')) {
+    return `A classical variation in the ${category} with natural piece development. ECO code: ${eco}.`;
+  }
+  
+  if (nameLower.includes('modern')) {
+    return `A modern approach in the ${category} with flexible piece placement. ECO code: ${eco}.`;
+  }
+  
+  if (category.includes('Gambit')) {
+    return `A gambit line offering material for initiative. ECO code: ${eco}.`;
+  }
+  
+  if (category.includes('Defense')) {
+    return `A defensive setup in the ${category}. ECO code: ${eco}.`;
+  }
+  
+  return `A line in the ${category}. ECO code: ${eco}.`;
 }
 
 class OpeningAPIManager {
-  private cache: Map<string, OpeningData> = new Map();
-  private loadingPromises: Map<string, Promise<OpeningData | null>> = new Map();
+  private ecoData: EcoData | null = null;
+  private openingsMap: Map<string, OpeningData> = new Map();
+  private loading: boolean = false;
+  private loadPromise: Promise<void> | null = null;
 
   /**
-   * Get the API base URL dynamically
+   * Load ECO database from JSON file
    */
-  private getAPIBase(): string {
-    return getAPIBase();
+  async loadDatabase(): Promise<void> {
+    if (this.ecoData !== null) {
+      return; // Already loaded
+    }
+
+    if (this.loading) {
+      return this.loadPromise!;
+    }
+
+    this.loading = true;
+    this.loadPromise = this.loadDatabaseInternal();
+    return this.loadPromise;
+  }
+
+  private async loadDatabaseInternal(): Promise<void> {
+    try {
+      console.log('Loading ECO opening database from static file...');
+      
+      // Load from public directory (works with Cloudflare Pages)
+      const response = await fetch('/eco_interpolated.json');
+      
+      if (!response.ok) {
+        throw new Error(`Failed to load ECO database: ${response.statusText}`);
+      }
+
+      this.ecoData = await response.json();
+      
+      // Process and index openings
+      this.indexOpenings();
+      
+      console.log(`✓ ECO database loaded: ${this.openingsMap.size} unique openings`);
+    } catch (error) {
+      console.error('Failed to load ECO database:', error);
+      this.ecoData = {};
+    } finally {
+      this.loading = false;
+    }
+  }
+
+  /**
+   * Index openings for faster lookup
+   */
+  private indexOpenings(): void {
+    if (!this.ecoData) return;
+
+    const seenOpenings = new Set<string>();
+
+    for (const [fen, entry] of Object.entries(this.ecoData)) {
+      const key = `${entry.name}|${entry.eco}`;
+      
+      if (!seenOpenings.has(key)) {
+        seenOpenings.add(key);
+        
+        const category = categorizeOpening(entry.name, entry.eco);
+        const description = generateDescription(entry.name, entry.eco, category);
+        
+        const openingData: OpeningData = {
+          name: entry.name,
+          eco: entry.eco,
+          category,
+          description,
+          moves: entry.moves,
+          fen,
+        };
+        
+        this.openingsMap.set(key, openingData);
+        // Also index by name only for quick lookup
+        this.openingsMap.set(entry.name.toLowerCase(), openingData);
+      }
+    }
   }
 
   /**
    * Get opening by name
    */
   async getOpeningByName(name: string): Promise<OpeningData | null> {
+    await this.loadDatabase();
+    
     if (!name) return null;
 
-    // Check cache first
-    const cacheKey = `name:${name}`;
-    if (this.cache.has(cacheKey)) {
-      return this.cache.get(cacheKey) || null;
+    // Try exact match first
+    const exactMatch = this.openingsMap.get(name.toLowerCase());
+    if (exactMatch) {
+      return exactMatch;
     }
 
-    // Check if already loading
-    if (this.loadingPromises.has(cacheKey)) {
-      return this.loadingPromises.get(cacheKey) || null;
-    }
-
-    // Create loading promise
-    const promise = this.fetchFromAPI(`/api/openings/by-name/${encodeURIComponent(name)}`);
-    this.loadingPromises.set(cacheKey, promise);
-
-    try {
-      const result = await promise;
-      if (result) {
-        this.cache.set(cacheKey, result);
+    // Try partial match
+    const nameLower = name.toLowerCase();
+    for (const opening of this.openingsMap.values()) {
+      if (opening.name.toLowerCase() === nameLower) {
+        return opening;
       }
-      return result;
-    } finally {
-      this.loadingPromises.delete(cacheKey);
     }
+
+    return null;
   }
 
   /**
    * Search openings by query
    */
   async searchOpenings(query: string): Promise<OpeningData[]> {
+    await this.loadDatabase();
+    
     if (!query || query.trim().length === 0) {
       return [];
     }
 
-    try {
-      const apiBase = this.getAPIBase();
-      const response = await fetch(`${apiBase}/api/openings/search?q=${encodeURIComponent(query)}`);
-      if (!response.ok) {
-        throw new Error('Failed to search openings');
-      }
+    const queryLower = query.toLowerCase();
+    const results: OpeningData[] = [];
+    const seen = new Set<string>();
+
+    for (const opening of this.openingsMap.values()) {
+      // Skip duplicates (indexed by both name and name|eco)
+      const uniqueKey = `${opening.name}|${opening.eco}`;
+      if (seen.has(uniqueKey)) continue;
       
-      // Check if the response is JSON before parsing
-      const contentType = response.headers.get('content-type');
-      if (!contentType || !contentType.includes('application/json')) {
-        const text = await response.text();
-        console.error('API returned non-JSON response:', text.substring(0, 200));
-        throw new Error('API returned non-JSON response (possibly HTML error page)');
+      // Match name, ECO code, or category
+      if (
+        opening.name.toLowerCase().includes(queryLower) ||
+        opening.eco.toLowerCase().includes(queryLower) ||
+        opening.category?.toLowerCase().includes(queryLower)
+      ) {
+        results.push(opening);
+        seen.add(uniqueKey);
       }
-      
-      return await response.json();
-    } catch (error) {
-      console.error('Failed to search openings:', error);
-      return [];
+
+      // Limit results
+      if (results.length >= 50) break;
     }
+
+    return results.sort((a, b) => a.name.localeCompare(b.name));
   }
 
   /**
    * Get all openings with pagination
    */
   async listOpenings(category?: string, limit: number = 100, offset: number = 0): Promise<OpeningData[]> {
-    try {
-      const apiBase = this.getAPIBase();
-      let url = `${apiBase}/api/openings/list?limit=${limit}&offset=${offset}`;
-      if (category) {
-        url += `&category=${encodeURIComponent(category)}`;
-      }
+    await this.loadDatabase();
+    
+    const allOpenings: OpeningData[] = [];
+    const seen = new Set<string>();
 
-      const response = await fetch(url);
-      if (!response.ok) {
-        throw new Error('Failed to list openings');
-      }
+    for (const opening of this.openingsMap.values()) {
+      const uniqueKey = `${opening.name}|${opening.eco}`;
+      if (seen.has(uniqueKey)) continue;
       
-      // Check if the response is JSON before parsing
-      const contentType = response.headers.get('content-type');
-      if (!contentType || !contentType.includes('application/json')) {
-        const text = await response.text();
-        console.error('API returned non-JSON response:', text.substring(0, 200));
-        throw new Error('API returned non-JSON response (possibly HTML error page)');
+      if (!category || opening.category === category) {
+        allOpenings.push(opening);
+        seen.add(uniqueKey);
       }
-      
-      return await response.json();
-    } catch (error) {
-      console.error('Failed to list openings:', error);
-      return [];
     }
+
+    // Sort by name
+    allOpenings.sort((a, b) => a.name.localeCompare(b.name));
+
+    // Apply pagination
+    return allOpenings.slice(offset, offset + limit);
   }
 
   /**
    * Get all categories
    */
   async getCategories(): Promise<string[]> {
-    try {
-      const apiBase = this.getAPIBase();
-      const response = await fetch(`${apiBase}/api/openings/categories`);
-      if (!response.ok) {
-        throw new Error('Failed to get categories');
+    await this.loadDatabase();
+    
+    const categories = new Set<string>();
+    
+    for (const opening of this.openingsMap.values()) {
+      if (opening.category) {
+        categories.add(opening.category);
       }
-      
-      // Check if the response is JSON before parsing
-      const contentType = response.headers.get('content-type');
-      if (!contentType || !contentType.includes('application/json')) {
-        const text = await response.text();
-        console.error('API returned non-JSON response:', text.substring(0, 200));
-        throw new Error('API returned non-JSON response (possibly HTML error page)');
-      }
-      
-      return await response.json();
-    } catch (error) {
-      console.error('Failed to get categories:', error);
-      return [];
     }
+
+    return Array.from(categories).sort();
   }
 
   /**
-   * Private method to fetch from API
+   * Get opening info by FEN (for book move detection)
    */
-  private async fetchFromAPI(endpoint: string): Promise<OpeningData | null> {
-    try {
-      const apiBase = this.getAPIBase();
-      const url = `${apiBase}${endpoint}`;
-      
-      const response = await fetch(url);
-      if (!response.ok) {
-        if (response.status === 404) {
-          return null;
-        }
-        throw new Error(`API error: ${response.statusText}`);
-      }
-      
-      // Check if the response is JSON before parsing
-      const contentType = response.headers.get('content-type');
-      if (!contentType || !contentType.includes('application/json')) {
-        // If not JSON, read as text to see what we got
-        const text = await response.text();
-        console.error('API returned non-JSON response:', text.substring(0, 200));
-        console.error('Request URL was:', url);
-        throw new Error('API returned non-JSON response (possibly HTML error page)');
-      }
-      
-      return await response.json();
-    } catch (error) {
-      console.error('API fetch error:', error);
-      return null;
-    }
+  getOpeningByFen(fen: string): OpeningData | null {
+    if (!this.ecoData) return null;
+
+    const entry = this.ecoData[fen];
+    if (!entry) return null;
+
+    const category = categorizeOpening(entry.name, entry.eco);
+    const description = generateDescription(entry.name, entry.eco, category);
+
+    return {
+      name: entry.name,
+      eco: entry.eco,
+      category,
+      description,
+      moves: entry.moves,
+      fen,
+    };
   }
 
   /**
    * Clear cache
    */
   clearCache(): void {
-    this.cache.clear();
+    this.openingsMap.clear();
+    this.ecoData = null;
+    this.loading = false;
+    this.loadPromise = null;
   }
 }
 
 export const openingAPIManager = new OpeningAPIManager();
+
+// Auto-load the database
+openingAPIManager.loadDatabase().catch(console.error);

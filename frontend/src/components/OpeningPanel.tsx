@@ -64,7 +64,7 @@ export function OpeningPanel() {
         <div className="flex-1 min-w-0">
           <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wide">Opening</h3>
           <div className="mt-2">
-            <p className="text-white font-semibold text-sm truncate">{openingName}</p>
+            <p className="text-white font-semibold text-sm break-words">{openingName}</p>
             {eco && <p className="text-gray-500 text-xs mt-1">ECO: {eco}</p>}
           </div>
         </div>
