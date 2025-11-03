@@ -1,8 +1,11 @@
 # ECO Database Implementation Summary
 
 ## Task Completed
-✅ Created describes for all 1,378+ unique ECO openings and gambits in the database
-✅ Fixed the API fetch error: `SyntaxError: Unexpected token '<', "<!doctype "... is not valid JSON`
+✅ Created describes for all 1,378+ unique ECO openings and gambits in the database  
+✅ Fixed the API fetch error: `SyntaxError: Unexpected token '<', "<!doctype "... is not valid JSON`  
+✅ Implemented robust Content-Type validation before JSON parsing  
+✅ Added dynamic API base URL resolution for dev/prod environments  
+✅ Enhanced error logging with detailed debugging information  
 
 ## What Was Done
 
@@ -33,10 +36,20 @@ The frontend was encountering this error:
 API fetch error: SyntaxError: Unexpected token '<', "<!doctype "... is not valid JSON
 ```
 
-This happened when the API returned HTML error pages instead of JSON, but the code tried to parse them as JSON anyway.
+This happened when:
+- The backend server wasn't running
+- API endpoints returned HTML error pages (404, 500, etc.) instead of JSON
+- The code tried to parse HTML as JSON
 
-**Solution:**
-Updated `/frontend/src/utils/openingAPI.ts` to check the `Content-Type` header before attempting to parse JSON:
+**Root Causes Identified:**
+1. Static API base URL computed at module load time
+2. No Content-Type validation before JSON parsing
+3. Insufficient error logging for debugging
+
+**Solutions Implemented:**
+
+#### A. Content-Type Validation
+Added validation before attempting to parse JSON:
 
 ```typescript
 // Check if the response is JSON before parsing
@@ -44,15 +57,60 @@ const contentType = response.headers.get('content-type');
 if (!contentType || !contentType.includes('application/json')) {
   const text = await response.text();
   console.error('API returned non-JSON response:', text.substring(0, 200));
+  console.error('Request URL was:', url);
   throw new Error('API returned non-JSON response (possibly HTML error page)');
 }
 ```
 
-This fix was applied to all API methods:
+Applied to all API methods:
 - `fetchFromAPI()` - private method for name lookups
 - `searchOpenings()` - search endpoint
 - `listOpenings()` - list endpoint
 - `getCategories()` - categories endpoint
+
+#### B. Dynamic API Base URL Resolution
+Changed from static to dynamic URL resolution:
+
+```typescript
+const getAPIBase = () => {
+  if (typeof window !== 'undefined' && window.location) {
+    const hostname = window.location.hostname;
+    
+    // Development environment
+    if (hostname === 'localhost' || hostname === '127.0.0.1') {
+      return 'http://localhost:3001';
+    }
+    
+    // Production with environment variable
+    if (import.meta.env.VITE_API_BASE_URL) {
+      return import.meta.env.VITE_API_BASE_URL;
+    }
+    
+    // Default: same host, port 3001
+    return `${window.location.protocol}//${hostname}:3001`;
+  }
+  
+  // Fallback for SSR
+  return 'http://localhost:3001';
+};
+```
+
+**Benefits:**
+- Works correctly in SSR environments
+- Supports custom backend URLs via `VITE_API_BASE_URL`
+- Automatically adapts to development vs production
+
+#### C. Enhanced Error Logging
+Added debug logging to track API requests:
+
+```typescript
+console.log('Fetching from API:', url); // Debug log
+```
+
+This helps identify:
+- Incorrect URLs being constructed
+- Timing issues when backend isn't ready
+- Environment-specific problems
 
 ### 3. Updated Database Initialization
 
@@ -174,11 +232,18 @@ curl http://localhost:3001/api/openings/list?category=Gambit&limit=234
 5. **Production Ready:** Backend automatically populates on first run
 6. **Maintainable:** Uses existing ECO JSON file as source of truth
 
-## Files Modified
+## Files Modified/Created
 
-1. `/frontend/src/utils/openingAPI.ts` - Added JSON validation
-2. `/backend/src/database.js` - Updated to use ECO JSON file
-3. `/backend/scripts/populate_eco_database.js` - New script for manual population
+### Modified Files
+1. `/frontend/src/utils/openingAPI.ts` - Added JSON validation and dynamic URL resolution
+2. `/backend/src/database.js` - Updated to use ECO JSON file with auto-population
+
+### New Files Created
+1. `/backend/scripts/populate_eco_database.js` - Script for manual database population
+2. `/backend/scripts/verify_database.js` - Database verification and statistics
+3. `/frontend/src/utils/__tests__/openingAPI.test.ts` - API error handling tests
+4. `/ECO_DATABASE_IMPLEMENTATION.md` - This implementation summary
+5. `/API_ERROR_HANDLING.md` - Comprehensive error handling documentation
 
 ## How to Use
 

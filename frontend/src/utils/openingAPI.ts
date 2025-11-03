@@ -1,20 +1,31 @@
 // Opening API utility - fetches from backend SQLite database
 
 // Determine API base URL based on current location
+// This function is called dynamically to ensure window is available
 const getAPIBase = () => {
+  // Always use localhost:3001 for backend API in development
+  // In production, the backend should be on port 3001 or use environment variables
   if (typeof window !== 'undefined' && window.location) {
-    // In development, use localhost:3001
-    // In production, assume backend is on same host
-    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+    const hostname = window.location.hostname;
+    
+    // Development environment
+    if (hostname === 'localhost' || hostname === '127.0.0.1') {
       return 'http://localhost:3001';
     }
-    // Use the same host in production
-    return `${window.location.protocol}//${window.location.hostname}:${window.location.port || (window.location.protocol === 'https:' ? 443 : 80)}`;
+    
+    // Production environment - backend typically runs on a different port or subdomain
+    // Check if there's a custom backend URL in environment
+    if (import.meta.env.VITE_API_BASE_URL) {
+      return import.meta.env.VITE_API_BASE_URL;
+    }
+    
+    // Default: assume backend is on same host but port 3001
+    return `${window.location.protocol}//${hostname}:3001`;
   }
+  
+  // Fallback for SSR or non-browser environment
   return 'http://localhost:3001';
 };
-
-const API_BASE = getAPIBase();
 
 interface OpeningData {
   id?: number;
@@ -27,6 +38,13 @@ interface OpeningData {
 class OpeningAPIManager {
   private cache: Map<string, OpeningData> = new Map();
   private loadingPromises: Map<string, Promise<OpeningData | null>> = new Map();
+
+  /**
+   * Get the API base URL dynamically
+   */
+  private getAPIBase(): string {
+    return getAPIBase();
+  }
 
   /**
    * Get opening by name
@@ -69,7 +87,8 @@ class OpeningAPIManager {
     }
 
     try {
-      const response = await fetch(`${API_BASE}/api/openings/search?q=${encodeURIComponent(query)}`);
+      const apiBase = this.getAPIBase();
+      const response = await fetch(`${apiBase}/api/openings/search?q=${encodeURIComponent(query)}`);
       if (!response.ok) {
         throw new Error('Failed to search openings');
       }
@@ -94,7 +113,8 @@ class OpeningAPIManager {
    */
   async listOpenings(category?: string, limit: number = 100, offset: number = 0): Promise<OpeningData[]> {
     try {
-      let url = `${API_BASE}/api/openings/list?limit=${limit}&offset=${offset}`;
+      const apiBase = this.getAPIBase();
+      let url = `${apiBase}/api/openings/list?limit=${limit}&offset=${offset}`;
       if (category) {
         url += `&category=${encodeURIComponent(category)}`;
       }
@@ -124,7 +144,8 @@ class OpeningAPIManager {
    */
   async getCategories(): Promise<string[]> {
     try {
-      const response = await fetch(`${API_BASE}/api/openings/categories`);
+      const apiBase = this.getAPIBase();
+      const response = await fetch(`${apiBase}/api/openings/categories`);
       if (!response.ok) {
         throw new Error('Failed to get categories');
       }
@@ -149,7 +170,10 @@ class OpeningAPIManager {
    */
   private async fetchFromAPI(endpoint: string): Promise<OpeningData | null> {
     try {
-      const response = await fetch(`${API_BASE}${endpoint}`);
+      const apiBase = this.getAPIBase();
+      const url = `${apiBase}${endpoint}`;
+      
+      const response = await fetch(url);
       if (!response.ok) {
         if (response.status === 404) {
           return null;
@@ -163,6 +187,7 @@ class OpeningAPIManager {
         // If not JSON, read as text to see what we got
         const text = await response.text();
         console.error('API returned non-JSON response:', text.substring(0, 200));
+        console.error('Request URL was:', url);
         throw new Error('API returned non-JSON response (possibly HTML error page)');
       }
       
