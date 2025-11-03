@@ -1,0 +1,112 @@
+{
+  "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1": {
+    "src": "eco_tsv",
+    "eco": "B00",
+    "moves": "1. e4",
+    "name": "King's Pawn Opening",
+    "aliases": {},
+    "isEcoRoot": true
+  },
+  "rnbqkbnr/pppp1ppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR w KQkq e6 0 2": {
+    "src": "eco_tsv",
+    "eco": "C20",
+    "moves": "1. e4 e5",
+    "name": "King's Pawn Game",
+    "aliases": {},
+    "isEcoRoot": true
+  },
+  "rnbqkbnr/pppp1ppp/8/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R b KQkq - 1 2": {
+    "src": "eco_tsv",
+    "eco": "C23",
+    "moves": "1. e4 e5 2. Nf3",
+    "name": "Italian Game",
+    "aliases": {
+      "eco_js": "Italian Opening"
+    },
+    "isEcoRoot": true
+  },
+  "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1": {
+    "src": "eco_tsv",
+    "eco": "B00",
+    "moves": "1. e4",
+    "name": "King's Pawn Opening",
+    "aliases": {},
+    "isEcoRoot": true
+  },
+  "rnbqkbnr/pppp1ppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR w KQkq e6 0 2": {
+    "src": "eco_tsv",
+    "eco": "C20",
+    "moves": "1. e4 e5",
+    "name": "Open Game",
+    "aliases": {},
+    "isEcoRoot": true
+  },
+  "rnbqkbnr/pp1ppppp/8/2p1P3/8/8/PPPP1PPP/RNBQKBNR w KQkq c6 0 2": {
+    "src": "eco_tsv",
+    "eco": "B01",
+    "moves": "1. e4 c5",
+    "name": "Sicilian Defense",
+    "aliases": {
+      "eco_js": "Sicilian"
+    },
+    "isEcoRoot": true
+  },
+  "rnbqkbnr/pp1ppppp/8/2p1P3/3P4/8/PPP2PPP/RNBQKBNR b KQkq d3 0 2": {
+    "src": "eco_tsv",
+    "eco": "B02",
+    "moves": "1. e4 c5 2. d4",
+    "name": "Sicilian Defense: Open",
+    "aliases": {},
+    "isEcoRoot": true
+  },
+  "rnbqkbnr/pppppppp/8/8/3P4/8/PPP1PPPP/RNBQKBNR b KQkq d3 0 1": {
+    "src": "eco_tsv",
+    "eco": "D00",
+    "moves": "1. d4",
+    "name": "Queen's Pawn Game",
+    "aliases": {},
+    "isEcoRoot": true
+  },
+  "rnbqkbnr/ppp1pppp/8/3p4/3P4/8/PPP1PPPP/RNBQKBNR w KQkq d6 0 2": {
+    "src": "eco_tsv",
+    "eco": "D06",
+    "moves": "1. d4 d5",
+    "name": "Queen's Gambit Declined",
+    "aliases": {
+      "eco_js": "Queen's Gambit"
+    },
+    "isEcoRoot": true
+  },
+  "rnbqkbnr/ppp1pppp/8/3p4/2PP4/8/PP2PPPP/RNBQKBNR b KQkq c3 0 2": {
+    "src": "eco_tsv",
+    "eco": "D10",
+    "moves": "1. d4 d5 2. c4",
+    "name": "Queen's Gambit Accepted",
+    "aliases": {},
+    "isEcoRoot": true
+  },
+  "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1": {
+    "src": "eco_tsv",
+    "eco": "B00",
+    "moves": "1. e4",
+    "name": "King's Pawn Opening",
+    "aliases": {},
+    "isEcoRoot": true
+  },
+  "rnbqkbnr/pppp1ppp/8/8/4p3/8/PPPP1PPP/RNBQKBNR w KQkq e6 0 2": {
+    "src": "eco_tsv",
+    "eco": "B01",
+    "moves": "1. e4 e6",
+    "name": "French Defense",
+    "aliases": {},
+    "isEcoRoot": true
+  },
+  "rnbqkbnr/pppp1ppp/8/8/4P3/5N2/PPPP1PPP/RNBQKB1R b KQkq - 1 2": {
+    "src": "eco_tsv",
+    "eco": "B02",
+    "moves": "1. e4 Nf6",
+    "name": "Alekhine's Defense",
+    "aliases": {},
+    "isEcoRoot": true
+  }
+}

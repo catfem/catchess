@@ -183,12 +183,14 @@ export function labelMove(
   _mateIn?: number,
   legalMoveCount?: number  // Number of legal moves available (for FORCED detection)
 ): MoveLabel {
-  // Detect FORCED moves: only 1 legal move available
+  // PRIORITY 1: Book moves always take precedence
+  // Book moves are by definition not "forced" - they're theoretical moves
+  if (isBookMove) return 'book';
+
+  // PRIORITY 2: Forced moves (only 1 legal move available)
   if (legalMoveCount === 1) {
     return 'forced';
   }
-
-  if (isBookMove) return 'book';
 
   // IMPORTANT: Both evaluations are from White's perspective
   // Positive = White advantage, Negative = Black advantage
