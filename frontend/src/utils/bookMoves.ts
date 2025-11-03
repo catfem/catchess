@@ -44,8 +44,9 @@ class BookMovesDetector {
     try {
       console.log('Loading ECO opening book database...');
       
-      // Use eco_interpolated.json which has the most comprehensive data
-      const response = await fetch('/eco_interpolated.json');
+      // Use eco_optimized.json which combines all ECO categories with 12k+ openings
+      // This is optimized from the eco.json project: https://github.com/hayatbiralem/eco.json
+      const response = await fetch('/eco_optimized.json');
       
       if (!response.ok) {
         throw new Error(`Failed to load ECO database: ${response.statusText}`);
