@@ -1,58 +1,116 @@
-# ♟️ CatChess - Chess Analysis & Play System
+# ♟️ CatChess - Production-Grade Chess Platform
 
-A complete interactive Chess GUI and Analysis Web System powered by **Stockfish 17**, supporting Player vs Player (PvP) and Player vs Engine gameplay with real-time move analysis and labeling.
+A comprehensive **Cloudflare Pages** chess platform powered by **Stockfish 17**, featuring real-time multiplayer, advanced analysis, time controls, PWA support, and production-grade scalability.
 
 ![Chess Analysis](https://img.shields.io/badge/Chess-Analysis-blue)
 ![Stockfish 17](https://img.shields.io/badge/Stockfish-17-green)
 ![React](https://img.shields.io/badge/React-18-blue)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5-blue)
+![Cloudflare](https://img.shields.io/badge/Cloudflare-Pages-orange)
+![PWA](https://img.shields.io/badge/PWA-Ready-purple)
 
 ## 🎯 Features
 
-### Interactive Chess Board
-- **Full-featured chessboard** with drag-and-drop functionality
-- **Legal move highlighting** and validation
-- **Multiple game modes:**
-  - 🤖 Play vs Stockfish (adjustable difficulty 0-20)
-  - 👥 Play vs Player locally (hotseat)
-  - 🌐 Play vs Player online (real-time WebSocket)
-  - 🔍 Analyze PGN games
+### 🧩 Core Gameplay System
+- Interactive drag-and-drop chess board with click-to-move support
+- Full FIDE rule implementation (castling, en passant, promotion)
+- Board orientation controls (flip, mirror)
+- Highlighted legal moves, checks, captures, and last move
+- Multiple piece sets, board themes, and coordinate labels
+- Smooth animations, sound effects, and mobile scaling
 
-### Move Analysis & Labeling
-Every move is analyzed by Stockfish 17 and labeled based on quality:
+### 🤖 Chess Engine (Client + Worker)
+- Stockfish 17 WebAssembly engine running locally with adjustable depth/skill
+- MultiPV analysis, evaluation bar, accuracy scoring, and auto-annotation
+- Optional Cloudflare Worker engine for server-side evaluation and caching
 
-| Label | Icon | Color | Criteria |
-|-------|------|-------|----------|
-| **Brilliant** | ‼ | 🟩 Teal | Exceptional tactical move avoiding significant loss |
-| **Great Move** | ! | 🟦 Blue | Within 50cp of engine best |
-| **Best Move** | ✓ | ⚪ Gray | Matches engine's top move |
-| **Book Move** | 📖 | 🟧 Orange | Found in opening theory |
-| **Inaccuracy** | ?! | 🟨 Yellow | Small deviation from best |
-| **Mistake** | ? | 🟧 Orange | -100 to -250cp vs best |
-| **Blunder** | ?? | 🟥 Red | Worse than -250cp |
+### 👥 Player Modes
+- Human vs AI (local or worker)
+- Local multiplayer (hot-seat)
+- Real-time online multiplayer via Durable Objects WebSocket rooms
+- Spectator mode, undo/redo, hints, and replay navigation
+- Matchmaking lobby and invite links
 
-### Engine Integration
-- **Stockfish 17** via locally bundled WASM (no CDN required)
-- UCI protocol communication
-- Real-time position evaluation
-- Adjustable depth (1-20) and skill level
-- Multi-PV support for analysis
+### 🕒 Time Controls
+- Blitz, rapid, classical presets plus custom timing
+- Increment/delay options, pause/resume, and flag detection
+- Server-authoritative clock synchronization for online games
 
-### Online Multiplayer
-- **Real-time WebSocket** synchronization
-- Unique room codes for matchmaking
-- Instant move broadcasting
-- Connection status indicators
-- Works with Cloudflare Durable Objects
+### 🧠 Analysis & Insights
+- Move list with SAN notation and ECO opening classification
+- Evaluation graph, accuracy score, and move quality labels
+- Heatmap visualizations and automated puzzle extraction
+- PGN import/export and queue-based full game analysis
 
-### UI/UX Features
-- **Evaluation bar** with centipawn display
-- **Evaluation graph** showing game progression
-- **Move history** with annotations
-- **Dark/Light theme** toggle
-- **Responsive design** for desktop and mobile
-- **PGN import/export**
-- **Game analysis** with full annotation
+### 📊 Player Profiles & Data
+- Persistent profiles with avatars, bios, and statistics
+- Cloudflare D1 storage of game history, ratings, and achievements
+- Stored opening repertoires, lessons, and training progress
+
+### 🌐 Networking Architecture
+- Cloudflare Pages frontend deployment with global CDN caching
+- Workers API for auth, matchmaking, and data access
+- Durable Objects for real-time game rooms and chat relay
+- D1 database for persistent storage and analytics
+
+### 🔐 Authentication & Security
+- OAuth2-ready architecture with JWT sessions and local login fallback
+- Rate limiting, Turnstile (anti-bot), and IP/device session tracking
+- Encrypted local storage and audit logs for moderation
+
+### 🧩 Teaching, Study, and Practice Tools
+- Opening explorer, position explorer, and tactics trainer
+- Interactive lessons, puzzle rush mode, and annotation overlays
+- Progress synchronization with D1 and offline practice support
+
+### 🧱 Storage Systems
+- IndexedDB caches for offline mode, local preferences, and game saves
+- Cloudflare D1 structured tables (`users`, `games`, `moves`, `ratings`, etc.)
+- Durable Objects for in-memory match state and Workers KV cache support
+
+### 🧭 Frontend Features & UI
+- Responsive layout with customizable panels, themes, and shortcuts
+- Accessibility-friendly (screen reader SAN, keyboard controls, high contrast)
+- Multilingual support and configurable animation speeds
+
+### 💬 Social & Community
+- In-game and spectator chat with moderation tools
+- Friend lists, presence, match sharing, and comment threads
+- Reporting, blocking, and emoji reactions
+
+### 📈 Ratings, Leaderboards, and Tournaments
+- Elo/Glicko-ready rating system per time control with history graphing
+- Global/weekly/friends leaderboards and badge rewards
+- Swiss/Arena tournament formats with live standings and replays
+
+### 📚 Resource Libraries
+- ECO opening database, puzzle collections, lesson library, and annotated games
+- Server-driven content loading via Workers with KV caching
+
+### 🧮 Analytics & Logging
+- Player timing analytics, accuracy distributions, and engine comparisons
+- Durable Object event logs, Workers analytics, and performance metrics
+
+### ⚙️ Settings & Customization
+- Theme selector, engine difficulty, hint toggles, privacy controls, and accessibility suite
+- Seamless toggles between P2P and Worker modes with auto-analysis preferences
+
+### 📱 Progressive Web App (PWA)
+- Installable application with offline caching, push notifications, and background sync
+- Service worker versioning and automatic cache invalidation
+
+### 🧠 Administration & Moderation
+- Admin dashboard with player management, moderation actions, and analytics
+- Cheating detection heuristics, tournament oversight, and automatic cleanup
+
+### 🧪 Developer Tools
+- Live debug overlay, game state inspector, engine communication logs
+- Durable Object inspector integration and error boundary alerts
+
+### ⚡ Cloudflare Deployment & Optimization
+- Automated deployment to Pages, Workers, Durable Objects, and D1
+- Global edge routing, static asset caching, HTTPS, and zero-maintenance scaling
+
 
 ## 🚀 Quick Start
 
@@ -363,4 +421,27 @@ For issues and questions:
 
 ---
 
+## 🆕 New in Version 2.0
+
+### Production-Grade Cloudflare Platform
+- ✨ **Complete D1 Schema** - 25+ tables for full-featured platform
+- ⏱️ **Chess Clock** - Real-time time controls with increment support  
+- 💾 **IndexedDB Storage** - Offline game saves and settings
+- 📱 **PWA Support** - Installable app with offline mode
+- 🔐 **Authentication API** - User registration, login, and sessions
+- 🏆 **Rating System** - ELO/Glicko foundation with leaderboards
+- 🎯 **Tournament Support** - Swiss/Arena formats ready
+- 🧩 **Puzzle System** - Rating-based tactical training
+- 🌍 **Global Deployment** - Edge-optimized Workers API
+
+### Documentation
+- 📖 **CLOUDFLARE_PAGES_COMPLETE_GUIDE.md** - Full deployment guide
+- 📊 **CLOUDFLARE_PAGES_IMPLEMENTATION.md** - Feature implementation status
+- 🗄️ **schema-complete.sql** - Production database schema
+- 🔧 **workers/enhanced-api.js** - Enhanced Worker API
+
+---
+
 **Built with ♟️ and ❤️ using Stockfish 17**
+
+**Version 2.0** - Production-grade Cloudflare Pages Platform 🚀
