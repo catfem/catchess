@@ -44,7 +44,8 @@ class BookMovesDetector {
     try {
       console.log('Loading ECO opening book database...');
       
-      // Use eco_interpolated.json which has the most comprehensive data
+      // Use eco_interpolated.json from https://github.com/hayatbiralem/eco.json
+      // Contains 3,459 opening positions covering all ECO categories with interpolated variations
       const response = await fetch('/eco_interpolated.json');
       
       if (!response.ok) {
