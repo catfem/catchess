@@ -1,12 +1,14 @@
 import { useState, useEffect } from 'react';
 import { useGameStore } from '../store/gameStore';
 import { openingInfoManager } from '../utils/openingInfo';
+import { getOpeningDescription } from '../utils/openingDescriptions';
 
 export function OpeningPanel() {
   const { chess, moveHistory } = useGameStore();
   const [isExpanded, setIsExpanded] = useState(true);
   const [openingName, setOpeningName] = useState<string | null>(null);
   const [eco, setEco] = useState<string | null>(null);
+  const [description, setDescription] = useState<string | null>(null);
 
   useEffect(() => {
     const updateOpening = () => {
@@ -16,9 +18,11 @@ export function OpeningPanel() {
       if (openingInfo) {
         setOpeningName(openingInfo.name);
         setEco(openingInfo.eco);
+        setDescription(getOpeningDescription(openingInfo.name));
       } else {
         setOpeningName(null);
         setEco(null);
+        setDescription(null);
       }
     };
 
@@ -35,7 +39,7 @@ export function OpeningPanel() {
   }
 
   return (
-    <div className="bg-[#312e2b] rounded-xl shadow-lg overflow-hidden flex flex-col">
+    <div className="bg-[#312e2b] rounded-xl shadow-lg overflow-hidden flex flex-col max-h-80">
       {/* Header */}
       <div
         className="p-4 flex items-center justify-between cursor-pointer hover:bg-[#3a3530] transition-colors"
@@ -67,8 +71,17 @@ export function OpeningPanel() {
 
       {/* Content */}
       {isExpanded && (
-        <div className="border-t border-gray-700 p-4">
-          <div className="space-y-2 text-xs">
+        <div className="border-t border-gray-700 p-4 overflow-y-auto flex flex-col gap-3">
+          {/* Description */}
+          {description && (
+            <div className="text-xs text-gray-300 leading-relaxed">
+              <p className="text-gray-400 font-semibold mb-1">📖 Description</p>
+              <p>{description}</p>
+            </div>
+          )}
+          
+          {/* Info */}
+          <div className="space-y-2 text-xs pt-2 border-t border-gray-700">
             <div className="flex justify-between">
               <span className="text-gray-500">Moves played:</span>
               <span className="text-gray-300 font-medium">{moveHistory.length}</span>

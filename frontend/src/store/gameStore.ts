@@ -25,9 +25,6 @@ interface GameStore {
   theme: ThemeSettings;
   evaluationHistory: EvaluationData[];
   playerColor: 'white' | 'black';
-  showBestMove: boolean;
-  bestMove: string | null;
-  bestMoveLoading: boolean;
   
   setGameMode: (mode: GameMode) => void;
   makeMove: (from: string, to: string, promotion?: string) => Promise<boolean>;
@@ -43,8 +40,6 @@ interface GameStore {
   joinOnlineRoom: (roomId: string) => Promise<void>;
   loadPGN: (pgn: string) => void;
   processAnalysisQueue: () => Promise<void>;
-  setShowBestMove: (show: boolean) => void;
-  fetchBestMove: () => Promise<void>;
 }
 
 export const useGameStore = create<GameStore>((set, get) => ({
@@ -69,9 +64,6 @@ export const useGameStore = create<GameStore>((set, get) => ({
   },
   evaluationHistory: [],
   playerColor: 'white',
-  showBestMove: localStorage.getItem('showBestMove') === 'true',
-  bestMove: null,
-  bestMoveLoading: false,
 
   setGameMode: (mode) => {
     set({ gameMode: mode });
@@ -422,31 +414,5 @@ export const useGameStore = create<GameStore>((set, get) => ({
     
     set({ processingQueue: false });
     console.log('Queue processing complete');
-  },
-
-  setShowBestMove: (show) => {
-    set({ showBestMove: show });
-    localStorage.setItem('showBestMove', show.toString());
-  },
-
-  fetchBestMove: async () => {
-    const { chess, engineSettings, showBestMove } = get();
-    
-    if (!showBestMove || !engineSettings.enabled) {
-      set({ bestMove: null });
-      return;
-    }
-
-    set({ bestMoveLoading: true });
-    
-    try {
-      const result = await stockfishEngine.getBestMove(chess.fen(), engineSettings.depth);
-      set({ bestMove: result.bestMove });
-    } catch (error) {
-      console.error('Failed to fetch best move:', error);
-      set({ bestMove: null });
-    } finally {
-      set({ bestMoveLoading: false });
-    }
   },
 }));

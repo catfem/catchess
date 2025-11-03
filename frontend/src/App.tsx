@@ -15,9 +15,7 @@ function App() {
     currentMoveIndex, 
     goToMove, 
     resetGame,
-    undoMove,
-    showBestMove,
-    setShowBestMove
+    undoMove 
   } = useGameStore();
   
   const [showSidebar, setShowSidebar] = useState(true);
@@ -259,23 +257,6 @@ function App() {
               </div>
             </div>
           )}
-
-          {/* Display Settings */}
-          <div className="border-t border-gray-800 p-6 space-y-4">
-            <h3 className="text-sm font-semibold text-gray-300 uppercase tracking-wide">Display</h3>
-            
-            <div className="bg-[#312e2b] rounded-xl p-4 shadow-lg space-y-3">
-              <label className="flex items-center gap-3 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={showBestMove}
-                  onChange={(e) => setShowBestMove(e.target.checked)}
-                  className="w-4 h-4 rounded border-gray-600 text-blue-600 focus:ring-blue-500"
-                />
-                <span className="text-sm text-gray-300">Show best move</span>
-              </label>
-            </div>
-          </div>
         </aside>
       </div>
 
