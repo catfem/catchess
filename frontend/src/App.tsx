@@ -2,10 +2,13 @@ import { useState } from 'react';
 import { ChessBoard } from './components/ChessBoard';
 import { MoveList } from './components/MoveList';
 import { EvaluationBar } from './components/EvaluationBar';
+import { EvaluationGraph } from './components/EvaluationGraph';
 import { GameControls } from './components/GameControls';
 import { PGNImport } from './components/PGNImport';
 import { StockfishStatus } from './components/StockfishStatus';
 import { OpeningPanel } from './components/OpeningPanel';
+import { OnlineRoom } from './components/OnlineRoom';
+import { ThemeToggle } from './components/ThemeToggle';
 import { ChessClock } from './components/ChessClock';
 import { useGameStore } from './store/gameStore';
 
@@ -63,6 +66,7 @@ function App() {
 
           <div className="flex items-center gap-3">
             <PGNImport />
+            <ThemeToggle />
             <button
               onClick={() => setShowSidebar(!showSidebar)}
               className="lg:hidden p-2 hover:bg-gray-700 rounded-lg transition-colors"
@@ -146,6 +150,12 @@ function App() {
 
             {/* Controls */}
             <GameControls />
+
+            {/* Online Play */}
+            <div className="bg-[#312e2b] rounded-xl p-4 shadow-lg">
+              <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wide mb-3">Online</h3>
+              <OnlineRoom />
+            </div>
           </div>
         </aside>
 
@@ -200,6 +210,11 @@ function App() {
           {/* Move List */}
           <div className="flex-1 overflow-hidden">
             <MoveList />
+          </div>
+
+          {/* Evaluation Graph */}
+          <div className="border-t border-gray-800 p-4">
+            <EvaluationGraph />
           </div>
 
           {/* Analysis Panel */}

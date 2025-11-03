@@ -37,7 +37,7 @@ export function StockfishStatus() {
         <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
         <div>
           <p className="font-semibold">Loading Stockfish Engine...</p>
-          <p className="text-sm opacity-90">Downloading from CDN (first load may take 10-30s)</p>
+          <p className="text-sm opacity-90">Initializing engine (first load may take a few seconds)</p>
         </div>
       </div>
     );
@@ -73,17 +73,9 @@ export function StockfishStatus() {
                 <li>Try a different browser (Chrome/Firefox recommended)</li>
               </ol>
               <p className="mt-2">
-                <strong>Note:</strong> Analysis features require Stockfish. 
-                You can still play locally or online without it.
+                <strong>Note:</strong> Analysis features require Stockfish.
+                You can still play locally or online without it. The engine files are bundled with the app (stockfish.wasm), so no external CDN is required.
               </p>
-              <a
-                href="/STOCKFISH_SETUP.md"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-block mt-2 px-3 py-1 bg-red-700 rounded hover:bg-red-800"
-              >
-                View Full Setup Guide
-              </a>
             </div>
           )}
 

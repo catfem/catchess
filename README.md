@@ -354,7 +354,7 @@ function labelMove(userMove, engineMove, userEval, prevEval) {
 - **Cloudflare D1** - Free SQL database (room storage)
 
 ### Chess Engine
-- **Stockfish 17** - Via CDN (stockfish.js)
+- **Stockfish 17** - Bundled locally (stockfish.js / stockfish.wasm)
 - UCI protocol communication
 
 ## 🔧 Troubleshooting
@@ -367,9 +367,7 @@ If the Stockfish engine fails to load:
 2. **Try Different Browser** - Chrome/Firefox recommended
 3. **Clear Browser Cache** - Ctrl+Shift+Delete
 4. **Check Console** - Open F12 and look for error messages
-5. **Verify Files** - Ensure `stockfish.js`, `stockfish.wasm.js`, and `stockfish.wasm` exist in `public/` folder
-
-See `frontend/public/STOCKFISH_SETUP.md` for detailed troubleshooting.
+5. **Verify Files** - Ensure `stockfish.js`, `stockfish.wasm.js`, and `stockfish.wasm` exist in `frontend/public/` folder
 
 ### Workers Not Found
 
@@ -378,7 +376,6 @@ If you see "workers not found" errors:
 1. Verify files exist: `ls workers/`
 2. Check `wrangler.toml` configuration
 3. Run `wrangler dev` for local testing
-4. See `WORKERS_GUIDE.md` for detailed documentation
 
 ### Backend Connection Issues
 
@@ -396,7 +393,6 @@ Check for port conflicts (default: 3001)
 
 - Run `npm run install:all` to ensure all dependencies are installed
 - Check that Node.js 18+ is installed: `node --version`
-- Review `FIXES_APPLIED.md` for recent bug fixes
 - Open browser console (F12) for error details
 
 ## 🤝 Contributing
@@ -435,8 +431,6 @@ For issues and questions:
 - 🌍 **Global Deployment** - Edge-optimized Workers API
 
 ### Documentation
-- 📖 **CLOUDFLARE_PAGES_COMPLETE_GUIDE.md** - Full deployment guide
-- 📊 **CLOUDFLARE_PAGES_IMPLEMENTATION.md** - Feature implementation status
 - 🗄️ **schema-complete.sql** - Production database schema
 - 🔧 **workers/enhanced-api.js** - Enhanced Worker API
 
