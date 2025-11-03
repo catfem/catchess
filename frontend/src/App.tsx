@@ -5,7 +5,6 @@ import { EvaluationBar } from './components/EvaluationBar';
 import { GameControls } from './components/GameControls';
 import { PGNImport } from './components/PGNImport';
 import { StockfishStatus } from './components/StockfishStatus';
-import { MoveLabel } from './components/MoveLabel';
 import { useGameStore } from './store/gameStore';
 
 function App() {
@@ -155,9 +154,7 @@ function App() {
               </div>
 
               {/* Board */}
-              <div className="flex-1 max-w-[600px] relative">
-                {/* Move Label Notification */}
-                <MoveLabel label={currentMove?.label || null} moveNumber={moveHistory.length} />
+              <div className="flex-1 max-w-[600px]">
                 <ChessBoard />
               </div>
             </div>
