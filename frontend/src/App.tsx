@@ -5,6 +5,7 @@ import { EvaluationBar } from './components/EvaluationBar';
 import { GameControls } from './components/GameControls';
 import { PGNImport } from './components/PGNImport';
 import { StockfishStatus } from './components/StockfishStatus';
+import { OpeningPanel } from './components/OpeningPanel';
 import { useGameStore } from './store/gameStore';
 
 function App() {
@@ -85,6 +86,9 @@ function App() {
           showSidebar ? 'w-80' : 'w-0'
         } bg-[#2b2926] border-r border-gray-800 transition-all duration-300 overflow-hidden flex-shrink-0`}>
           <div className="h-full overflow-y-auto p-6 space-y-6">
+            {/* Opening Panel */}
+            <OpeningPanel />
+
             {/* Game Status Card */}
             <div className="bg-[#312e2b] rounded-xl p-4 shadow-lg">
               <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wide mb-3">Status</h3>
