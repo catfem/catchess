@@ -1,13 +1,23 @@
-import { useState } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Chessboard } from 'react-chessboard';
 import { useGameStore } from '../store/gameStore';
 import { Square } from 'chess.js';
 import { PieceLabelBadge } from './PieceLabelBadge';
+import { BestMoveOverlay } from './BestMoveOverlay';
 
 export function ChessBoard() {
-  const { chess, makeMove, gameMode, playerColor, moveHistory, currentMoveIndex } = useGameStore();
+  const { chess, makeMove, gameMode, playerColor, moveHistory, currentMoveIndex, showBestMove, bestMove, fetchBestMove } = useGameStore();
   const [selectedSquare, setSelectedSquare] = useState<Square | null>(null);
   const [optionSquares, setOptionSquares] = useState<Record<string, { background: string; borderRadius?: string }>>({});
+
+  const fen = useMemo(() => chess.fen(), [chess]);
+
+  // Fetch best move when position changes
+  useEffect(() => {
+    if (showBestMove) {
+      fetchBestMove();
+    }
+  }, [fen, showBestMove, fetchBestMove]);
   
   // Get the current move's label and destination square
   const currentMove = moveHistory[currentMoveIndex >= 0 ? currentMoveIndex : moveHistory.length - 1];
@@ -103,6 +113,9 @@ export function ChessBoard() {
         boardOrientation={boardOrientation}
         moveNumber={moveHistory.length}
       />
+      {showBestMove && bestMove && (
+        <BestMoveOverlay bestMove={bestMove} boardWidth={600} />
+      )}
       <Chessboard
         position={chess.fen()}
         onPieceDrop={onDrop}
