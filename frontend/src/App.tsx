@@ -1,51 +1,23 @@
-import { useState } from 'react';
-import { PlayView } from './components/views/PlayView';
-import { AnalyzeView } from './components/views/AnalyzeView';
-import { PuzzlesView } from './components/views/PuzzlesView';
-import { LearnView } from './components/views/LearnView';
-import { ProfileView } from './components/views/ProfileView';
-import { SettingsView } from './components/views/SettingsView';
-import { Navigation } from './components/layout/Navigation';
-import { useGameStore } from './store/gameStore';
+/**
+ * Main Application Component
+ * Refactored for modern architecture
+ */
 
-type View = 'play' | 'analyze' | 'puzzles' | 'learn' | 'profile' | 'settings';
+import { useEffect } from 'react';
+import { useThemeStore } from './core/store/theme.store';
+import { GameView } from './features/game/GameView';
 
-function App() {
-  const [currentView, setCurrentView] = useState<View>('play');
-  const { theme } = useGameStore();
-  
-  const isDark = theme.mode === 'dark';
+export default function App() {
+  const { theme, setThemeMode } = useThemeStore();
 
-  const renderView = () => {
-    switch (currentView) {
-      case 'play':
-        return <PlayView />;
-      case 'analyze':
-        return <AnalyzeView />;
-      case 'puzzles':
-        return <PuzzlesView />;
-      case 'learn':
-        return <LearnView />;
-      case 'profile':
-        return <ProfileView />;
-      case 'settings':
-        return <SettingsView />;
-      default:
-        return <PlayView />;
-    }
-  };
+  // Initialize theme on mount
+  useEffect(() => {
+    setThemeMode(theme.mode);
+  }, [theme.mode, setThemeMode]);
 
   return (
-    <div className={`h-screen flex flex-col ${isDark ? 'dark' : ''}`}>
-      {/* Navigation */}
-      <Navigation currentView={currentView} onViewChange={setCurrentView} />
-      
-      {/* Main Content */}
-      <main className="flex-1 overflow-hidden">
-        {renderView()}
-      </main>
+    <div className="h-screen w-screen overflow-hidden bg-gray-50 dark:bg-gray-900">
+      <GameView />
     </div>
   );
 }
-
-export default App;
