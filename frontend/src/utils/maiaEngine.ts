@@ -1,19 +1,32 @@
 import { ChessEngine, EngineResult } from './engine';
-import { Chess } from 'chess.js';
 
 type MaiaLevel = 1100 | 1300 | 1500 | 1700 | 1900;
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type OnnxRuntime = any;
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type InferenceSession = any;
-
+/**
+ * Maia Chess Engine Integration
+ * 
+ * IMPORTANT: Maia models are Leela Chess Zero (LC0) neural networks that use .pb.gz weights.
+ * They require LC0 engine (not ONNX) and should be run with "go nodes 1" to disable search.
+ * 
+ * Model files: maia-1100.pb.gz, maia-1500.pb.gz, maia-1900.pb.gz, etc.
+ * Download from: https://github.com/CSSLab/maia-chess/tree/master/maia_weights
+ * 
+ * This implementation attempts to load an LC0 worker if available at /lc0.js
+ * If not available, it falls back to using Stockfish with human-like parameters
+ * that approximate play at different rating levels.
+ * 
+ * For full Maia support, you need:
+ * 1. LC0 compiled to WebAssembly (place lc0.js and lc0.wasm in public/)
+ * 2. Maia .pb.gz model files in public/maia/
+ * 3. Or use server-side LC0 via API (not yet implemented)
+ */
 class MaiaEngine implements ChessEngine {
   private ready: boolean = false;
   private loadingError: string | null = null;
   private maiaLevel: MaiaLevel = 1500;
-  private session: InferenceSession | null = null;
-  private ort: OnnxRuntime | null = null;
+  private worker: Worker | null = null;
+  private currentCallback: ((data: string) => void) | null = null;
+  private useStockfishFallback: boolean = false;
 
   constructor(level: MaiaLevel = 1500) {
     this.maiaLevel = level;
@@ -23,41 +36,135 @@ class MaiaEngine implements ChessEngine {
     if (this.maiaLevel !== level) {
       this.maiaLevel = level;
       this.ready = false;
-      this.session = null;
+      this.terminate();
     }
   }
 
   async init(): Promise<void> {
-    if (this.ready && this.session) return;
+    if (this.ready && this.worker) return;
 
     try {
-      // Dynamically import ONNX Runtime Web
-      this.ort = await import('onnxruntime-web');
-      
-      if (!this.ort) {
-        throw new Error('Failed to load ONNX Runtime');
+      // Try to load LC0 worker if available
+      // Note: This requires lc0.js to be built and placed in public/
+      try {
+        this.worker = new Worker('/lc0.js');
+        await this.initLC0Worker();
+        this.useStockfishFallback = false;
+      } catch (lc0Error) {
+        console.warn('LC0 not available, falling back to Stockfish simulation:', lc0Error);
+        this.useStockfishFallback = true;
+        // Use Stockfish worker with human-like parameters
+        this.worker = new Worker('/stockfish.js');
+        await this.initStockfishFallback();
       }
       
-      // Configure ONNX Runtime
-      this.ort.env.wasm.numThreads = 1;
-      this.ort.env.wasm.simd = true;
-      
-      // Load the appropriate Maia model
-      const modelPath = `/maia/maia_kdd_${this.maiaLevel}.onnx`;
-      console.log(`Loading Maia ${this.maiaLevel} model from ${modelPath}...`);
-      
-      this.session = await this.ort.InferenceSession.create(modelPath, {
-        executionProviders: ['wasm'],
-        graphOptimizationLevel: 'all',
-      });
-      
       this.ready = true;
-      console.log(`Maia ${this.maiaLevel} engine ready`);
+      const engineType = this.useStockfishFallback ? 'Stockfish (simulating human play)' : 'LC0 with Maia weights';
+      console.log(`Maia ${this.maiaLevel} engine ready using ${engineType}`);
     } catch (error) {
-      this.loadingError = `Failed to load Maia ${this.maiaLevel} model. Please ensure the model files are available.`;
+      this.loadingError = `Failed to load Maia ${this.maiaLevel} engine. LC0 with Maia weights not available. See MAIA_SETUP.md for setup instructions.`;
       console.error('Maia loading error:', error);
       throw error;
     }
+  }
+
+  private async initLC0Worker(): Promise<void> {
+    if (!this.worker) throw new Error('Worker not initialized');
+
+    return new Promise((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        reject(new Error('LC0 initialization timeout'));
+      }, 30000);
+
+      if (!this.worker) {
+        clearTimeout(timeout);
+        reject(new Error('Worker not initialized'));
+        return;
+      }
+
+      this.worker.onerror = (error) => {
+        clearTimeout(timeout);
+        reject(error);
+      };
+
+      this.worker.onmessage = (e) => {
+        const message = e.data;
+        
+        if (message === 'readyok') {
+          clearTimeout(timeout);
+          resolve();
+          return;
+        }
+
+        if (this.currentCallback) {
+          this.currentCallback(message);
+        }
+      };
+
+      // Load Maia weights with LC0
+      // Format: lc0 --weights=/maia/maia-1500.pb.gz
+      this.sendCommand('uci');
+      this.sendCommand(`setoption name WeightsFile value /maia/maia-${this.maiaLevel}.pb.gz`);
+      this.sendCommand('isready');
+    });
+  }
+
+  private async initStockfishFallback(): Promise<void> {
+    if (!this.worker) throw new Error('Worker not initialized');
+
+    return new Promise((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        reject(new Error('Stockfish initialization timeout'));
+      }, 30000);
+
+      if (!this.worker) {
+        clearTimeout(timeout);
+        reject(new Error('Worker not initialized'));
+        return;
+      }
+
+      this.worker.onerror = (error) => {
+        clearTimeout(timeout);
+        reject(error);
+      };
+
+      this.worker.onmessage = (e) => {
+        const message = e.data;
+        
+        if (message === 'readyok') {
+          clearTimeout(timeout);
+          // Configure Stockfish to play human-like moves at the target rating
+          const skillLevel = this.ratingToStockfishSkill(this.maiaLevel);
+          this.sendCommand(`setoption name Skill Level value ${skillLevel}`);
+          resolve();
+          return;
+        }
+
+        if (this.currentCallback) {
+          this.currentCallback(message);
+        }
+      };
+
+      this.sendCommand('uci');
+      this.sendCommand('isready');
+    });
+  }
+
+  private ratingToStockfishSkill(rating: number): number {
+    // Map Maia rating levels to approximate Stockfish skill levels
+    // Maia ratings are human-like, so we use lower Stockfish levels
+    const skillMap: { [key: number]: number } = {
+      1100: 2,   // Beginner
+      1200: 4,
+      1300: 6,   // Intermediate
+      1400: 8,
+      1500: 10,  // Advanced
+      1600: 12,
+      1700: 14,  // Expert
+      1800: 16,
+      1900: 18,  // Master
+    };
+    return skillMap[rating] || 10;
   }
 
   getLoadingError(): string | null {
@@ -68,167 +175,95 @@ class MaiaEngine implements ChessEngine {
     return this.ready;
   }
 
-  // Convert FEN to input tensor for Maia
-  private fenToTensor(fen: string): Float32Array {
-    const chess = new Chess(fen);
-    const board = chess.board();
-    
-    // Maia uses a 773-dimensional input vector:
-    // - 768 for board representation (8x8x12 planes for piece positions)
-    // - 5 for additional features (castling rights, en passant, etc.)
-    const input = new Float32Array(773);
-    
-    const pieceMap: { [key: string]: number } = {
-      'P': 0, 'N': 1, 'B': 2, 'R': 3, 'Q': 4, 'K': 5,
-      'p': 6, 'n': 7, 'b': 8, 'r': 9, 'q': 10, 'k': 11
-    };
-    
-    // Encode piece positions
-    for (let rank = 0; rank < 8; rank++) {
-      for (let file = 0; file < 8; file++) {
-        const square = board[rank][file];
-        if (square) {
-          const pieceType = square.type.toUpperCase();
-          const piece = square.color === 'w' ? pieceType : pieceType.toLowerCase();
-          const pieceIdx = pieceMap[piece];
-          const squareIdx = rank * 8 + file;
-          const planeIdx = pieceIdx * 64 + squareIdx;
-          input[planeIdx] = 1.0;
-        }
-      }
+  private sendCommand(command: string): void {
+    if (this.worker) {
+      this.worker.postMessage(command);
     }
-    
-    // Encode additional features (simplified version)
-    const fenParts = fen.split(' ');
-    const castling = fenParts[2] || '-';
-    const turn = fenParts[1] === 'w' ? 1.0 : 0.0;
-    
-    input[768] = turn;
-    input[769] = castling.includes('K') ? 1.0 : 0.0;
-    input[770] = castling.includes('Q') ? 1.0 : 0.0;
-    input[771] = castling.includes('k') ? 1.0 : 0.0;
-    input[772] = castling.includes('q') ? 1.0 : 0.0;
-    
-    return input;
   }
 
-  // Convert model output to UCI move
-  private outputToMove(output: Float32Array, fen: string): string {
-    const chess = new Chess(fen);
-    const legalMoves = chess.moves({ verbose: true });
-    
-    if (legalMoves.length === 0) {
-      throw new Error('No legal moves available');
-    }
-    
-    // Maia outputs move probabilities
-    // For simplicity, we'll use a weighted random selection or top move
-    const moveProbs: { move: string; prob: number }[] = [];
-    
-    for (let i = 0; i < Math.min(legalMoves.length, output.length); i++) {
-      const move = legalMoves[i];
-      const uciMove = move.from + move.to + (move.promotion || '');
-      moveProbs.push({ move: uciMove, prob: output[i] || 0 });
-    }
-    
-    // Sort by probability
-    moveProbs.sort((a, b) => b.prob - a.prob);
-    
-    // Return the highest probability move
-    return moveProbs[0]?.move || legalMoves[0].from + legalMoves[0].to;
-  }
-
-  async getBestMove(fen: string, _depth: number = 20): Promise<EngineResult> {
-    if (!this.ready || !this.session) {
+  async getBestMove(fen: string, depth: number = 20): Promise<EngineResult> {
+    if (!this.worker || !this.ready) {
       await this.init();
     }
 
-    if (!this.ort || !this.session) {
-      throw new Error('Maia engine not properly initialized');
+    if (!this.worker) {
+      throw new Error('Engine not initialized');
     }
 
-    try {
-      // Prepare input tensor
-      const inputData = this.fenToTensor(fen);
-      const tensor = new this.ort.Tensor('float32', inputData, [1, 773]);
-      
-      // Run inference
-      const feeds = { input: tensor };
-      const results = await this.session.run(feeds);
-      
-      // Get move probabilities from output
-      const outputTensor = results.output;
-      const output = outputTensor.data as Float32Array;
-      
-      // Convert to UCI move
-      const bestMove = this.outputToMove(output, fen);
-      
-      // Create a temporary chess instance to evaluate the position
-      const chess = new Chess(fen);
-      const sideToMove = chess.turn();
-      
-      // Make the move to get the resulting position
-      const from = bestMove.substring(0, 2);
-      const to = bestMove.substring(2, 4);
-      const promotion = bestMove.length > 4 ? (bestMove[4] as 'q' | 'r' | 'b' | 'n') : undefined;
-      chess.move({ from, to, promotion });
-      
-      // Maia doesn't provide explicit evaluations like Stockfish
-      // We'll provide a simplified evaluation based on material count
-      const evaluation = this.evaluatePosition(chess.fen());
-      
-      return {
-        bestMove,
-        eval: sideToMove === 'b' ? -evaluation : evaluation,
-        pv: [bestMove],
-        cp: Math.round((sideToMove === 'b' ? -evaluation : evaluation) * 100),
+    const fenParts = fen.split(' ');
+    const sideToMove = fenParts[1];
+
+    return new Promise((resolve) => {
+      let bestMove = '';
+      let evaluation = 0;
+      let cp: number | undefined;
+      let mate: number | undefined;
+      let pv: string[] = [];
+
+      const callback = (data: string) => {
+        if (typeof data === 'string') {
+          if (data.includes('info') && data.includes('score')) {
+            const cpMatch = data.match(/score cp (-?\d+)/);
+            const mateMatch = data.match(/score mate (-?\d+)/);
+            const pvMatch = data.match(/pv (.+)/);
+
+            if (cpMatch) {
+              cp = parseInt(cpMatch[1]);
+              if (sideToMove === 'b') {
+                cp = -cp;
+              }
+              evaluation = cp / 100;
+            }
+            if (mateMatch) {
+              mate = parseInt(mateMatch[1]);
+              evaluation = mate > 0 ? 100 : -100;
+              if (sideToMove === 'b') {
+                evaluation = -evaluation;
+                mate = -mate;
+              }
+            }
+            if (pvMatch) {
+              pv = pvMatch[1].split(' ');
+            }
+          }
+
+          if (data.startsWith('bestmove')) {
+            const moveMatch = data.match(/bestmove (\S+)/);
+            if (moveMatch) {
+              bestMove = moveMatch[1];
+              this.currentCallback = null;
+              resolve({ bestMove, eval: evaluation, pv, cp, mate });
+            }
+          }
+        }
       };
-    } catch (error) {
-      console.error('Maia analysis error:', error);
-      // Fallback to a random legal move
-      const chess = new Chess(fen);
-      const legalMoves = chess.moves({ verbose: true });
-      const randomMove = legalMoves[Math.floor(Math.random() * legalMoves.length)];
-      return {
-        bestMove: randomMove.from + randomMove.to + (randomMove.promotion || ''),
-        eval: 0,
-        pv: [],
-        cp: 0,
-      };
-    }
+
+      this.currentCallback = callback;
+      this.sendCommand(`position fen ${fen}`);
+      
+      if (this.useStockfishFallback) {
+        // Use limited depth for human-like play
+        const humanDepth = Math.min(depth, 12);
+        this.sendCommand(`go depth ${humanDepth}`);
+      } else {
+        // For LC0 with Maia weights, use nodes 1 to get raw NN output
+        this.sendCommand('go nodes 1');
+      }
+    });
   }
 
   async getEngineMove(fen: string, _skill: number = 20): Promise<string> {
+    // For Maia, skill parameter is ignored - rating level is set via maiaLevel
     const result = await this.getBestMove(fen);
     return result.bestMove;
   }
 
-  // Simple material-based position evaluation
-  private evaluatePosition(fen: string): number {
-    const chess = new Chess(fen);
-    const board = chess.board();
-    
-    const pieceValues: { [key: string]: number } = {
-      'p': 1, 'n': 3, 'b': 3, 'r': 5, 'q': 9, 'k': 0
-    };
-    
-    let evaluation = 0;
-    
-    for (const row of board) {
-      for (const square of row) {
-        if (square) {
-          const value = pieceValues[square.type.toLowerCase()] || 0;
-          evaluation += square.color === 'w' ? value : -value;
-        }
-      }
-    }
-    
-    return evaluation;
-  }
-
   terminate(): void {
-    this.session = null;
-    this.ready = false;
+    if (this.worker) {
+      this.worker.terminate();
+      this.worker = null;
+      this.ready = false;
+    }
   }
 }
 
