@@ -1,18 +1,28 @@
 {
-  "name": "CatChess",
+  "name": "CatChess - Modern Chess Platform",
   "short_name": "CatChess",
-  "description": "Cloudflare-native chess platform with Stockfish analysis, multiplayer, and training tools.",
+  "description": "A production-grade chess analysis and playing platform powered by Stockfish",
   "start_url": "/",
-  "scope": "/",
   "display": "standalone",
-  "background_color": "#0f172a",
-  "theme_color": "#38bdf8",
+  "background_color": "#ffffff",
+  "theme_color": "#0ea5e9",
   "orientation": "any",
   "icons": [
     {
-      "src": "/chess-icon.svg",
-      "sizes": "any",
-      "type": "image/svg+xml"
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
     }
-  ]
+  ],
+  "categories": ["games", "education"],
+  "screenshots": [],
+  "related_applications": [],
+  "prefer_related_applications": false
 }

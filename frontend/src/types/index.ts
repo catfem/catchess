@@ -61,7 +61,7 @@ export interface OnlineRoom {
 
 export interface ThemeSettings {
   mode: 'light' | 'dark';
-  boardTheme: 'blue' | 'brown' | 'green' | 'gray';
+  boardTheme: 'blue' | 'brown' | 'green' | 'gray' | 'purple';
 }
 
 export interface EvaluationData {
