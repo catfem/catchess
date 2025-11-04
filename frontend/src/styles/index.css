@@ -13,242 +13,139 @@
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  
-  /* Pale color palette */
-  --pale-blue: rgba(96, 165, 250, 0.65);
-  --pale-blue-hover: rgba(96, 165, 250, 0.8);
-  --pale-green: rgba(74, 222, 128, 0.65);
-  --pale-green-hover: rgba(74, 222, 128, 0.8);
-  --pale-red: rgba(248, 113, 113, 0.65);
-  --pale-red-hover: rgba(248, 113, 113, 0.8);
-  --pale-purple: rgba(192, 132, 252, 0.65);
-  --pale-purple-hover: rgba(192, 132, 252, 0.8);
-  --pale-gray: rgba(156, 163, 175, 0.65);
-  --pale-gray-hover: rgba(156, 163, 175, 0.8);
+  -webkit-text-size-adjust: 100%;
 }
 
 * {
   box-sizing: border-box;
+  margin: 0;
+  padding: 0;
 }
 
 body {
   margin: 0;
+  display: flex;
   min-width: 320px;
   min-height: 100vh;
 }
 
 #root {
   width: 100%;
+  margin: 0 auto;
 }
 
-@layer utilities {
-  .scrollbar-hide::-webkit-scrollbar {
-    display: none;
+button {
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.chess-board-container {
+  position: relative;
+  width: 100%;
+  max-width: 600px;
+  aspect-ratio: 1;
+}
+
+.evaluation-bar {
+  transition: height 0.3s ease;
+}
+
+.move-list-item {
+  transition: background-color 0.2s ease;
+}
+
+.move-list-item:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+.dark .move-list-item:hover {
+  background-color: rgba(255, 255, 255, 0.05);
+}
+
+.promotion-dialog {
+  animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
   }
-  
-  .scrollbar-hide {
-    -ms-overflow-style: none;
-    scrollbar-width: none;
+  to {
+    opacity: 1;
+    transform: scale(1);
   }
 }
 
-/* Chess Board Styling - Classic Wooden Digital Theme */
-@layer components {
-  /* Board coordinate notation styling */
-  [class*="notation"] {
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif !important;
-    font-size: 11px !important;
-    font-weight: 500 !important;
-    color: rgba(255, 255, 255, 0.5) !important;
-    text-transform: lowercase !important;
-    letter-spacing: 0.5px !important;
-  }
+.fade-enter {
+  opacity: 0;
+}
 
-  /* Remove any grid lines or borders */
-  [class*="square"] {
-    border: none !important;
-    outline: none !important;
-  }
+.fade-enter-active {
+  opacity: 1;
+  transition: opacity 200ms;
+}
 
-  /* Piece styling - clean flat design */
-  [class*="piece"] {
-    filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.2));
-  }
+.fade-exit {
+  opacity: 1;
+}
 
-  /* Hover effect for interactive squares */
-  [class*="square"]:hover {
-    transition: background-color 0.15s ease-in-out;
-  }
+.fade-exit-active {
+  opacity: 0;
+  transition: opacity 200ms;
+}
 
-  /* Selected square styling - light gray outline */
-  [class*="square"][data-square-color="light"][class*="highlight"] {
-    background-color: #f0d9b5 !important;
-    box-shadow: inset 0 0 0 3px rgba(180, 180, 180, 0.5) !important;
-  }
+.slide-enter {
+  transform: translateX(-100%);
+}
 
-  [class*="square"][data-square-color="dark"][class*="highlight"] {
-    background-color: #b58863 !important;
-    box-shadow: inset 0 0 0 3px rgba(160, 160, 160, 0.5) !important;
-  }
+.slide-enter-active {
+  transform: translateX(0);
+  transition: transform 300ms ease-out;
+}
 
-  /* Possible move indicators - semi-transparent circles */
-  [class*="possible-move"]::before {
-    content: '';
-    position: absolute;
-    width: 30%;
-    height: 30%;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    border-radius: 50%;
-    background-color: rgba(139, 101, 76, 0.3);
-    pointer-events: none;
-  }
+.slide-exit {
+  transform: translateX(0);
+}
 
-  /* Capture move indicators - darker overlay */
-  [class*="capture-move"]::before {
-    content: '';
-    position: absolute;
-    width: 100%;
-    height: 100%;
-    top: 0;
-    left: 0;
-    border: 4px solid rgba(100, 70, 50, 0.5);
-    border-radius: 50%;
-    box-sizing: border-box;
-    pointer-events: none;
-  }
+.slide-exit-active {
+  transform: translateX(-100%);
+  transition: transform 300ms ease-in;
+}
 
-  /* Board border and shadow */
-  [class*="board"] {
-    box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.4) !important;
-    border-radius: 8px !important;
-    overflow: hidden;
-  }
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(155, 155, 155, 0.5) transparent;
+}
 
-  /* Clean piece rendering - no outlines */
-  [class*="piece"] svg {
-    filter: none;
-    outline: none;
-    border: none;
-  }
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
 
-  /* Last move highlight - subtle */
-  [class*="last-move"] {
-    background-color: rgba(255, 255, 0, 0.2) !important;
-  }
+::-webkit-scrollbar-track {
+  background: transparent;
+}
 
-  /* Check highlight */
-  [class*="check"] {
-    background: radial-gradient(circle, rgba(255, 0, 0, 0.4) 0%, transparent 70%) !important;
-  }
+::-webkit-scrollbar-thumb {
+  background-color: rgba(155, 155, 155, 0.5);
+  border-radius: 20px;
+  border: transparent;
+}
 
-  /* Drag preview styling */
-  [class*="drag-preview"] {
-    opacity: 0.6;
-    cursor: grabbing;
-  }
-  
-  /* Animations for collapsible panels */
-  .animate-fade-in {
-    animation: fadeIn 0.3s ease-in-out;
-  }
-  
-  .animate-collapse {
-    animation: collapse 0.3s ease-in-out forwards;
-  }
-  
-  .animate-expand {
-    animation: expand 0.3s ease-in-out forwards;
-  }
-  
-  @keyframes fadeIn {
-    from {
-      opacity: 0;
-      transform: translateY(-10px);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
-  }
-  
-  @keyframes collapse {
-    from {
-      max-height: 500px;
-      opacity: 1;
-    }
-    to {
-      max-height: 0;
-      opacity: 0;
-      padding-top: 0;
-      padding-bottom: 0;
-    }
-  }
-  
-  @keyframes expand {
-    from {
-      max-height: 0;
-      opacity: 0;
-    }
-    to {
-      max-height: 500px;
-      opacity: 1;
-    }
-  }
-  
-  /* Move label animations */
-  @keyframes slideInRight {
-    from {
-      opacity: 0;
-      transform: translateX(20px);
-    }
-    to {
-      opacity: 1;
-      transform: translateX(0);
-    }
-  }
-  
-  @keyframes fadeOut {
-    from {
-      opacity: 1;
-    }
-    to {
-      opacity: 0;
-    }
-  }
-  
-  .animate-fade-in-out {
-    animation: slideInRight 0.4s ease-out, fadeOut 0.5s ease-in 2s forwards;
-  }
-  
-  /* Piece label badge animations */
-  @keyframes badgePop {
-    0% {
-      opacity: 0;
-      transform: scale(0.3);
-    }
-    50% {
-      transform: scale(1.1);
-    }
-    100% {
-      opacity: 1;
-      transform: scale(1);
-    }
-  }
-  
-  @keyframes badgeFadeOut {
-    from {
-      opacity: 1;
-      transform: scale(1);
-    }
-    to {
-      opacity: 0;
-      transform: scale(0.8);
-    }
-  }
-  
-  .animate-badge-pop {
-    animation: badgePop 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55), badgeFadeOut 0.4s ease-in 1.4s forwards;
-  }
+::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(155, 155, 155, 0.7);
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background-color: rgba(255, 255, 255, 0.3);
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(255, 255, 255, 0.5);
 }
