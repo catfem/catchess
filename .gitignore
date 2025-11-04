@@ -45,3 +45,7 @@ coverage/
 # Misc
 *.tsbuildinfo
 .cache/
+
+# Maia chess models (too large for git)
+frontend/public/maia/*.onnx
+*.onnx

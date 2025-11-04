@@ -1,8 +1,9 @@
 import { create } from 'zustand';
 import { Chess } from 'chess.js';
 import { GameMode, MoveAnalysis, EngineSettings, OnlineRoom, ThemeSettings, EvaluationData } from '../types';
-import { stockfishEngine, labelMove } from '../utils/stockfish';
+import { labelMove } from '../utils/stockfish';
 import { bookMovesDetector } from '../utils/bookMoves';
+import { engineManager } from '../utils/engineManager';
 
 interface AnalysisQueueItem {
   moveIndex: number;
@@ -52,10 +53,12 @@ export const useGameStore = create<GameStore>((set, get) => ({
   processingQueue: false,
   engineSettings: {
     enabled: true,
+    engineType: 'stockfish',
     depth: 18,
     skill: 20,
     multiPv: 1,
     threads: 1,
+    maiaLevel: 1500,
   },
   onlineRoom: null,
   theme: {
@@ -140,7 +143,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
     set({ isAnalyzing: true });
     
     try {
-      const result = await stockfishEngine.getBestMove(chess.fen(), engineSettings.depth);
+      await engineManager.setEngine(engineSettings.engineType, engineSettings.maiaLevel);
+      const result = await engineManager.getBestMove(chess.fen(), engineSettings.depth);
       console.log('Analysis:', result);
     } catch (error) {
       console.error('Analysis error:', error);
@@ -152,8 +156,11 @@ export const useGameStore = create<GameStore>((set, get) => ({
   analyzeGame: async (pgn: string) => {
     set({ isAnalyzing: true });
     const chess = new Chess();
+    const { engineSettings } = get();
     
     try {
+      await engineManager.setEngine(engineSettings.engineType, engineSettings.maiaLevel);
+      
       chess.loadPgn(pgn);
       const moves = chess.history({ verbose: true });
       const analysis: MoveAnalysis[] = [];
@@ -162,7 +169,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
       for (const move of moves) {
         const beforeMove = tempChess.fen();
-        const result = await stockfishEngine.getBestMove(beforeMove, 15);
+        const result = await engineManager.getBestMove(beforeMove, 15);
         
         // Get evaluation after playing the best move (what it SHOULD have been)
         const tempChessForBest = new Chess(beforeMove);
@@ -170,11 +177,11 @@ export const useGameStore = create<GameStore>((set, get) => ({
         const bestMoveTo = result.bestMove.substring(2, 4);
         const bestMovePromo = result.bestMove.length > 4 ? result.bestMove[4] : undefined;
         tempChessForBest.move({ from: bestMoveFrom, to: bestMoveTo, promotion: bestMovePromo });
-        const bestMoveResult = await stockfishEngine.getBestMove(tempChessForBest.fen(), 15);
+        const bestMoveResult = await engineManager.getBestMove(tempChessForBest.fen(), 15);
         const evalAfterBestMove = bestMoveResult.eval;
         
         tempChess.move(move);
-        const afterResult = await stockfishEngine.getBestMove(tempChess.fen(), 15);
+        const afterResult = await engineManager.getBestMove(tempChess.fen(), 15);
         
         // Check if the position AFTER this move is a book move
         const isBookMove = bookMovesDetector.isBookPosition(tempChess.fen());
@@ -263,7 +270,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
     const { chess, engineSettings } = get();
     
     try {
-      const bestMove = await stockfishEngine.getEngineMove(chess.fen(), engineSettings.skill);
+      await engineManager.setEngine(engineSettings.engineType, engineSettings.maiaLevel);
+      const bestMove = await engineManager.getEngineMove(chess.fen(), engineSettings.skill);
       
       if (bestMove && bestMove.length >= 4) {
         const from = bestMove.substring(0, 2);
@@ -351,8 +359,10 @@ export const useGameStore = create<GameStore>((set, get) => ({
       try {
         console.log(`Analyzing move ${item.moveIndex + 1}: ${item.move}`);
         
+        await engineManager.setEngine(engineSettings.engineType, engineSettings.maiaLevel);
+        
         // Get best move before the user's move was played
-        const beforeResult = await stockfishEngine.getBestMove(
+        const beforeResult = await engineManager.getBestMove(
           item.fenBefore, 
           engineSettings.depth
         );
@@ -363,11 +373,11 @@ export const useGameStore = create<GameStore>((set, get) => ({
         const bestMoveTo = beforeResult.bestMove.substring(2, 4);
         const bestMovePromo = beforeResult.bestMove.length > 4 ? beforeResult.bestMove[4] : undefined;
         tempChessForBest.move({ from: bestMoveFrom, to: bestMoveTo, promotion: bestMovePromo });
-        const bestMoveResult = await stockfishEngine.getBestMove(tempChessForBest.fen(), engineSettings.depth);
+        const bestMoveResult = await engineManager.getBestMove(tempChessForBest.fen(), engineSettings.depth);
         const evalAfterBestMove = bestMoveResult.eval;
         
         // Get evaluation after the user's move
-        const afterResult = await stockfishEngine.getBestMove(
+        const afterResult = await engineManager.getBestMove(
           item.fenAfter,
           engineSettings.depth
         );

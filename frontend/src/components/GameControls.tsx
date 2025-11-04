@@ -44,8 +44,67 @@ export function GameControls() {
         </div>
       </div>
 
+      {/* Engine Selection */}
+      <div className="bg-[#312e2b] rounded-xl p-4 shadow-lg">
+        <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wide mb-3">
+          Chess Engine
+        </h3>
+        <div className="space-y-2">
+          <div className="grid grid-cols-2 gap-2 mb-3">
+            <button
+              onClick={() => setEngineSettings({ engineType: 'stockfish' })}
+              className={`px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                engineSettings.engineType === 'stockfish'
+                  ? 'text-white shadow-lg'
+                  : 'bg-[#2b2926] text-gray-300 hover:bg-[#3a3633] border border-gray-700'
+              }`}
+              style={engineSettings.engineType === 'stockfish' ? { 
+                backgroundColor: 'var(--pale-blue)' 
+              } : {}}
+            >
+              Stockfish
+            </button>
+            <button
+              onClick={() => setEngineSettings({ engineType: 'maia' })}
+              className={`px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                engineSettings.engineType === 'maia'
+                  ? 'text-white shadow-lg'
+                  : 'bg-[#2b2926] text-gray-300 hover:bg-[#3a3633] border border-gray-700'
+              }`}
+              style={engineSettings.engineType === 'maia' ? { 
+                backgroundColor: 'var(--pale-blue)' 
+              } : {}}
+            >
+              Maia
+            </button>
+          </div>
+
+          {engineSettings.engineType === 'maia' && (
+            <div className="space-y-2 pt-2 border-t border-gray-700">
+              <label className="text-xs text-gray-400 uppercase tracking-wide">
+                Maia Rating Level
+              </label>
+              <select
+                value={engineSettings.maiaLevel || 1500}
+                onChange={(e) => setEngineSettings({ maiaLevel: parseInt(e.target.value) as 1100 | 1300 | 1500 | 1700 | 1900 })}
+                className="w-full px-3 py-2 bg-[#2b2926] text-white rounded-lg border border-gray-700 text-sm"
+              >
+                <option value={1100}>1100 - Beginner</option>
+                <option value={1300}>1300 - Intermediate</option>
+                <option value={1500}>1500 - Advanced</option>
+                <option value={1700}>1700 - Expert</option>
+                <option value={1900}>1900 - Master</option>
+              </select>
+              <p className="text-xs text-gray-500 mt-1">
+                Maia plays like humans at different skill levels
+              </p>
+            </div>
+          )}
+        </div>
+      </div>
+
       {/* Engine Difficulty */}
-      {gameMode === 'vs-engine' && (
+      {gameMode === 'vs-engine' && engineSettings.engineType === 'stockfish' && (
         <div className="bg-[#312e2b] rounded-xl p-4 shadow-lg">
           <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wide mb-3">
             Engine Strength

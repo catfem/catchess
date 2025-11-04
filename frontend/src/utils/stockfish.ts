@@ -1,6 +1,7 @@
 import { MoveLabel } from '../types';
+import { ChessEngine, EngineResult } from './engine';
 
-class StockfishEngine {
+class StockfishEngine implements ChessEngine {
   private worker: Worker | null = null;
   private ready: boolean = false;
   private currentCallback: ((data: string) => void) | null = null;
@@ -80,7 +81,7 @@ class StockfishEngine {
     }
   }
 
-  async getBestMove(fen: string, depth: number = 20): Promise<{ bestMove: string; eval: number; pv: string[]; cp?: number; mate?: number }> {
+  async getBestMove(fen: string, depth: number = 20): Promise<EngineResult> {
     if (!this.worker || !this.ready) {
       await this.init();
     }
