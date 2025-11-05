@@ -7,6 +7,7 @@ import { PGNImport } from './components/PGNImport';
 import { StockfishStatus } from './components/StockfishStatus';
 import { OpeningPanel } from './components/OpeningPanel';
 import { ChessClock } from './components/ChessClock';
+import { EvaluationPanel } from './components/EvaluationPanel';
 import { useGameStore } from './store/gameStore';
 
 function App() {
@@ -21,6 +22,7 @@ function App() {
   
   const [showSidebar, setShowSidebar] = useState(true);
   const [showAnalysis, setShowAnalysis] = useState(true);
+  const [showEvaluationPanel, setShowEvaluationPanel] = useState(false);
 
   const currentMove = moveHistory[currentMoveIndex >= 0 ? currentMoveIndex : moveHistory.length - 1];
   const whiteToMove = chess.turn() === 'w';
@@ -46,7 +48,15 @@ function App() {
             
             <nav className="hidden md:flex items-center gap-2">
               <button
-                onClick={() => setShowAnalysis(!showAnalysis)}
+                onClick={() => {
+                  setShowAnalysis((prev) => {
+                    const next = !prev;
+                    if (!next) {
+                      setShowEvaluationPanel(false);
+                    }
+                    return next;
+                  });
+                }}
                 className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
                   showAnalysis 
                     ? 'bg-blue-600 text-white shadow-lg' 
@@ -56,6 +66,28 @@ function App() {
                 <span className="flex items-center gap-2">
                   🔍 Analysis
                   {showAnalysis && <span className="text-xs">✓</span>}
+                </span>
+              </button>
+              
+              <button
+                onClick={() => {
+                  setShowEvaluationPanel((prev) => {
+                    const next = !prev;
+                    if (next) {
+                      setShowAnalysis(true);
+                    }
+                    return next;
+                  });
+                }}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                  showEvaluationPanel 
+                    ? 'bg-purple-600 text-white shadow-lg' 
+                    : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                }`}
+              >
+                <span className="flex items-center gap-2">
+                  🧠 Human AI
+                  {showEvaluationPanel && <span className="text-xs">✓</span>}
                 </span>
               </button>
             </nav>
@@ -195,71 +227,79 @@ function App() {
           </div>
         </main>
 
-        {/* Right Sidebar - Moves & Analysis */}
-        <aside className="hidden lg:flex lg:w-96 bg-[#2b2926] border-l border-gray-800 flex-col">
-          {/* Move List */}
-          <div className="flex-1 overflow-hidden">
-            <MoveList />
-          </div>
-
-          {/* Analysis Panel */}
-          {showAnalysis && currentMove && (
-            <div className="border-t border-gray-800 p-6 space-y-4">
-              <div className="flex items-center justify-between">
-                <h3 className="text-sm font-semibold text-gray-300 uppercase tracking-wide">Analysis</h3>
-                <span className="text-xs text-gray-500 font-medium">Stockfish 17</span>
+        {/* Right Sidebar - Moves & Analysis or Evaluation Panel */}
+        <aside className={`hidden lg:flex bg-[#2b2926] border-l border-gray-800 flex-col ${
+          showEvaluationPanel ? 'lg:w-[900px]' : 'lg:w-96'
+        }`}>
+          {showEvaluationPanel ? (
+            <EvaluationPanel />
+          ) : (
+            <>
+              {/* Move List */}
+              <div className="flex-1 overflow-hidden">
+                <MoveList />
               </div>
 
-              {/* Evaluation Display */}
-              <div className="bg-[#312e2b] rounded-xl p-4 shadow-lg">
-                <div className="flex items-center justify-between mb-3">
-                  <span className="text-xs text-gray-400 uppercase tracking-wide">Evaluation</span>
-                  {currentMove.depth && (
-                    <span className="text-xs text-gray-500 font-mono bg-gray-800 px-2 py-1 rounded">
-                      Depth {currentMove.depth}
-                    </span>
-                  )}
-                </div>
-                <div className="text-3xl font-bold mb-2">
-                  {currentMove.mate ? (
-                    <span className="text-blue-400">M{Math.abs(currentMove.mate)}</span>
-                  ) : (
-                    <span className={currentMove.eval > 0 ? 'text-white' : 'text-gray-400'}>
-                      {currentMove.eval > 0 ? '+' : ''}{currentMove.eval.toFixed(2)}
-                    </span>
-                  )}
-                </div>
-                {currentMove.bestMove && (
-                  <div className="text-xs text-gray-400">
-                    Best: <span className="text-gray-300 font-mono">{currentMove.bestMove}</span>
+              {/* Analysis Panel */}
+              {showAnalysis && currentMove && (
+                <div className="border-t border-gray-800 p-6 space-y-4">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-sm font-semibold text-gray-300 uppercase tracking-wide">Analysis</h3>
+                    <span className="text-xs text-gray-500 font-medium">Stockfish 17</span>
                   </div>
-                )}
-              </div>
 
-              {/* Move Labels Legend */}
-              <div className="bg-[#312e2b] rounded-xl p-4 shadow-lg">
-                <h4 className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">Move Symbols</h4>
-                <div className="grid grid-cols-2 gap-2 text-xs">
-                  {[
-                    { icon: '‼', label: 'Brilliant', color: '#1abc9c' },
-                    { icon: '!', label: 'Great', color: '#3498db' },
-                    { icon: '✓', label: 'Best', color: '#95a5a6' },
-                    { icon: '⚡', label: 'Excellent', color: '#16a085' },
-                    { icon: '📖', label: 'Book', color: '#f39c12' },
-                    { icon: '○', label: 'Good', color: '#2ecc71' },
-                    { icon: '?!', label: 'Inaccurate', color: '#f1c40f' },
-                    { icon: '?', label: 'Mistake', color: '#e67e22' },
-                    { icon: '⊘', label: 'Miss', color: '#9b59b6' },
-                    { icon: '??', label: 'Blunder', color: '#e74c3c' },
-                  ].map(({ icon, label, color }) => (
-                    <div key={label} className="flex items-center gap-2">
-                      <span style={{ color }} className="font-bold">{icon}</span>
-                      <span className="text-gray-400">{label}</span>
+                  {/* Evaluation Display */}
+                  <div className="bg-[#312e2b] rounded-xl p-4 shadow-lg">
+                    <div className="flex items-center justify-between mb-3">
+                      <span className="text-xs text-gray-400 uppercase tracking-wide">Evaluation</span>
+                      {currentMove.depth && (
+                        <span className="text-xs text-gray-500 font-mono bg-gray-800 px-2 py-1 rounded">
+                          Depth {currentMove.depth}
+                        </span>
+                      )}
                     </div>
-                  ))}
+                    <div className="text-3xl font-bold mb-2">
+                      {currentMove.mate ? (
+                        <span className="text-blue-400">M{Math.abs(currentMove.mate)}</span>
+                      ) : (
+                        <span className={currentMove.eval > 0 ? 'text-white' : 'text-gray-400'}>
+                          {currentMove.eval > 0 ? '+' : ''}{currentMove.eval.toFixed(2)}
+                        </span>
+                      )}
+                    </div>
+                    {currentMove.bestMove && (
+                      <div className="text-xs text-gray-400">
+                        Best: <span className="text-gray-300 font-mono">{currentMove.bestMove}</span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Move Labels Legend */}
+                  <div className="bg-[#312e2b] rounded-xl p-4 shadow-lg">
+                    <h4 className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">Move Symbols</h4>
+                    <div className="grid grid-cols-2 gap-2 text-xs">
+                      {[
+                        { icon: '‼', label: 'Brilliant', color: '#1abc9c' },
+                        { icon: '!', label: 'Great', color: '#3498db' },
+                        { icon: '✓', label: 'Best', color: '#95a5a6' },
+                        { icon: '⚡', label: 'Excellent', color: '#16a085' },
+                        { icon: '📖', label: 'Book', color: '#f39c12' },
+                        { icon: '○', label: 'Good', color: '#2ecc71' },
+                        { icon: '?!', label: 'Inaccurate', color: '#f1c40f' },
+                        { icon: '?', label: 'Mistake', color: '#e67e22' },
+                        { icon: '⊘', label: 'Miss', color: '#9b59b6' },
+                        { icon: '??', label: 'Blunder', color: '#e74c3c' },
+                      ].map(({ icon, label, color }) => (
+                        <div key={label} className="flex items-center gap-2">
+                          <span style={{ color }} className="font-bold">{icon}</span>
+                          <span className="text-gray-400">{label}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
                 </div>
-              </div>
-            </div>
+              )}
+            </>
           )}
         </aside>
       </div>
