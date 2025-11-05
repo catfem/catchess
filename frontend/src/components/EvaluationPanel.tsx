@@ -1,5 +1,6 @@
 import type { ReactElement } from 'react';
 import { Chessboard } from 'react-chessboard';
+import type { Arrow } from 'react-chessboard/dist/chessboard/types';
 import {
   ResponsiveContainer,
   LineChart,
@@ -14,6 +15,10 @@ import {
 } from 'recharts';
 
 const boardPosition = 'r2q1rk1/pppn1ppp/2n1p3/3pP3/2pP1BP1/2P2N1P/PP1N1P2/R2Q1RK1 w - - 0 1';
+const boardArrows: Arrow[] = [
+  ['d2', 'e4', '#2563eb'],
+  ['h4', 'f5', '#ef4444'],
+];
 
 const humanMoves = [
   { move: 'Nf5', probability: 34.8, tone: 'danger' as const },
@@ -154,6 +159,7 @@ export function EvaluationPanel() {
                 customBoardStyle={{ borderRadius: '16px' }}
                 customDarkSquareStyle={{ backgroundColor: '#7a5230' }}
                 customLightSquareStyle={{ backgroundColor: '#f0d9b5' }}
+                customArrows={boardArrows}
                 id="maia-eval-board"
                 boardWidth={360}
               />
