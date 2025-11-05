@@ -45,12 +45,16 @@ export interface GameState {
   result?: string;
 }
 
+export type EngineType = 'stockfish' | 'maia';
+
 export interface EngineSettings {
   enabled: boolean;
+  engineType: EngineType;
   depth: number;
   skill: number;
   multiPv: number;
   threads: number;
+  maiaLevel?: 1100 | 1300 | 1500 | 1700 | 1900; // Maia rating levels
 }
 
 export interface OnlineRoom {

@@ -1,43 +1,48 @@
 import { useEffect, useState } from 'react';
-import { stockfishEngine } from '../utils/stockfish';
+import { engineManager } from '../utils/engineManager';
+import { useGameStore } from '../store/gameStore';
 
 export function StockfishStatus() {
   const [status, setStatus] = useState<'loading' | 'ready' | 'error'>('loading');
   const [errorMessage, setErrorMessage] = useState<string>('');
   const [showDetails, setShowDetails] = useState(false);
+  const engineSettings = useGameStore(state => state.engineSettings);
 
   useEffect(() => {
-    const checkStockfish = async () => {
+    const checkEngine = async () => {
       try {
-        if (stockfishEngine.isReady()) {
+        if (engineManager.isReady()) {
           setStatus('ready');
           return;
         }
 
-        await stockfishEngine.init();
+        await engineManager.setEngine(engineSettings.engineType, engineSettings.maiaLevel);
         setStatus('ready');
       } catch (error) {
         setStatus('error');
-        const err = stockfishEngine.getLoadingError() || 'Failed to load Stockfish engine';
+        const engineName = engineSettings.engineType === 'maia' ? `Maia ${engineSettings.maiaLevel}` : 'Stockfish';
+        const err = engineManager.getLoadingError() || `Failed to load ${engineName} engine`;
         setErrorMessage(err);
-        console.error('Stockfish loading error:', error);
+        console.error('Engine loading error:', error);
       }
     };
 
-    checkStockfish();
-  }, []);
+    checkEngine();
+  }, [engineSettings.engineType, engineSettings.maiaLevel]);
 
   if (status === 'ready') {
     return null; // Don't show anything when ready
   }
+
+  const engineName = engineSettings.engineType === 'maia' ? `Maia ${engineSettings.maiaLevel}` : 'Stockfish';
 
   if (status === 'loading') {
     return (
       <div className="fixed bottom-4 right-4 bg-blue-500 text-white px-4 py-3 rounded-lg shadow-lg flex items-center space-x-3 z-50">
         <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
         <div>
-          <p className="font-semibold">Loading Stockfish Engine...</p>
-          <p className="text-sm opacity-90">Downloading from CDN (first load may take 10-30s)</p>
+          <p className="font-semibold">Loading {engineName} Engine...</p>
+          <p className="text-sm opacity-90">Initializing engine (first load may take 10-30s)</p>
         </div>
       </div>
     );
@@ -52,7 +57,7 @@ export function StockfishStatus() {
           </svg>
         </div>
         <div className="flex-1">
-          <p className="font-semibold">Stockfish Engine Error</p>
+          <p className="font-semibold">{engineName} Engine Error</p>
           <p className="text-sm mt-1">{errorMessage}</p>
           
           <button

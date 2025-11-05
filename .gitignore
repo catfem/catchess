@@ -45,3 +45,13 @@ coverage/
 # Misc
 *.tsbuildinfo
 .cache/
+
+# Maia chess models (too large for git)
+frontend/public/maia/*.pb.gz
+*.pb.gz
+frontend/public/maia/*.onnx
+*.onnx
+
+# LC0 WebAssembly files (large binary files)
+frontend/public/lc0.js
+frontend/public/lc0.wasm
