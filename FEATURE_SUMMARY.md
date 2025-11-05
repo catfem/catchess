@@ -7,6 +7,8 @@ CatChess now supports **multiple chess engines** instead of just Stockfish. User
 1. **Stockfish** - Traditional, strongest engine (existing)
 2. **Maia** - NEW! Human-like play at 5 rating levels (1100-1900)
 
+> **⚠️ Important:** Maia models are **not standalone engines**. They are neural network weights (.pb.gz files) that require **LC0 (Leela Chess Zero)** to run. Without LC0, the app automatically falls back to using Stockfish with adjusted skill levels to simulate human-like play. See [MAIA_SETUP.md](MAIA_SETUP.md) for details.
+
 ## Key Features
 
 ### 🎯 Engine Selection
@@ -17,8 +19,8 @@ CatChess now supports **multiple chess engines** instead of just Stockfish. User
 ### 🤖 Maia Chess Engine
 - **5 Rating Levels**: 1100, 1300, 1500, 1700, 1900
 - **Human-like Play**: Makes moves actual humans would make
-- **Neural Network**: Uses ONNX models for inference
-- **Browser-based**: Runs entirely client-side
+- **Neural Network**: Requires LC0 (Leela Chess Zero) with .pb.gz weights
+- **Dual Mode**: Full Maia with LC0, or Stockfish fallback (works out of box)
 
 ### ⚙️ Technical Implementation
 - Clean engine abstraction layer
@@ -63,7 +65,7 @@ npm run dev
 - 🔄 `frontend/src/store/gameStore.ts` - Uses engine manager
 - 🔄 `frontend/src/components/GameControls.tsx` - Engine selection UI
 - 🔄 `frontend/src/components/StockfishStatus.tsx` - Supports all engines
-- 🔄 `frontend/package.json` - Added onnxruntime-web
+- 🔄 `frontend/package.json` - No new dependencies (uses existing engines)
 
 ## Documentation
 

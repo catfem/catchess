@@ -19,8 +19,12 @@ A comprehensive **Cloudflare Pages** chess platform powered by **Stockfish 17**,
 - Multiple piece sets, board themes, and coordinate labels
 - Smooth animations, sound effects, and mobile scaling
 
-### 🤖 Chess Engine (Client + Worker)
-- Stockfish 17 WebAssembly engine running locally with adjustable depth/skill
+### 🤖 Chess Engines (Multiple Engine Support!)
+- **Stockfish 17** - Traditional UCI engine with maximum strength (depth/skill adjustable)
+- **Maia Chess** - NEW! Human-like play at 5 rating levels (1100-1900)
+  - Dual-mode: Full Maia with LC0, or Stockfish fallback (works out of box)
+  - Plays like actual humans at selected rating levels
+  - See [MAIA_SETUP.md](MAIA_SETUP.md) for details
 - MultiPV analysis, evaluation bar, accuracy scoring, and auto-annotation
 - Optional Cloudflare Worker engine for server-side evaluation and caching
 
@@ -353,9 +357,11 @@ function labelMove(userMove, engineMove, userEval, prevEval) {
 - **Cloudflare Durable Objects** - WebSocket state
 - **Cloudflare D1** - Free SQL database (room storage)
 
-### Chess Engine
-- **Stockfish 17** - Via CDN (stockfish.js)
+### Chess Engines
+- **Stockfish 17** - Locally bundled (stockfish.js + WASM)
+- **Maia Chess** - Human-like neural network (requires LC0, or uses Stockfish fallback)
 - UCI protocol communication
+- Pluggable engine architecture for easy extensibility
 
 ## 🔧 Troubleshooting
 
@@ -421,9 +427,18 @@ For issues and questions:
 
 ---
 
-## 🆕 New in Version 2.0
+## 🆕 New in Version 2.1
 
-### Production-Grade Cloudflare Platform
+### Multiple Chess Engines Support
+- 🤖 **Maia Chess** - Human-like play at different rating levels
+  - Select between Stockfish and Maia engines in UI
+  - Choose Maia rating level: 1100, 1300, 1500, 1700, 1900
+  - Smart fallback: Works without LC0 using Stockfish simulation
+  - See [README_MAIA.md](README_MAIA.md) and [MAIA_LC0_REQUIREMENT.md](MAIA_LC0_REQUIREMENT.md)
+- 🔧 **Engine Architecture** - Clean abstraction layer for adding more engines
+- 📝 **Comprehensive Docs** - Setup guides, implementation notes, and troubleshooting
+
+### Production-Grade Cloudflare Platform (v2.0)
 - ✨ **Complete D1 Schema** - 25+ tables for full-featured platform
 - ⏱️ **Chess Clock** - Real-time time controls with increment support  
 - 💾 **IndexedDB Storage** - Offline game saves and settings
@@ -435,6 +450,10 @@ For issues and questions:
 - 🌍 **Global Deployment** - Edge-optimized Workers API
 
 ### Documentation
+- 🤖 **MAIA_SETUP.md** - Maia engine setup guide (both modes)
+- 🧠 **MAIA_LC0_REQUIREMENT.md** - Why Maia needs LC0 and how we handle it
+- 📝 **README_MAIA.md** - Quick Maia overview
+- 🏗️ **ENGINE_SUPPORT.md** - Engine architecture for developers
 - 📖 **CLOUDFLARE_PAGES_COMPLETE_GUIDE.md** - Full deployment guide
 - 📊 **CLOUDFLARE_PAGES_IMPLEMENTATION.md** - Feature implementation status
 - 🗄️ **schema-complete.sql** - Production database schema
@@ -442,6 +461,6 @@ For issues and questions:
 
 ---
 
-**Built with ♟️ and ❤️ using Stockfish 17**
+**Built with ♟️ and ❤️ using Stockfish 17 & Maia Chess**
 
-**Version 2.0** - Production-grade Cloudflare Pages Platform 🚀
+**Version 2.1** - Multiple Chess Engines + Production-grade Cloudflare Pages Platform 🚀
