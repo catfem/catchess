@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo, type ReactElement } from 'react';
+import { useState, useCallback, useMemo, useEffect, useRef, type ReactElement } from 'react';
 import { Chess } from 'chess.js';
 import type { Arrow, Square } from 'react-chessboard/dist/chessboard/types';
 import {
@@ -192,110 +192,145 @@ export function AnalysisPanel() {
   const [positionWarning, setPositionWarning] = useState('');
   const [maiaBest, setMaiaBest] = useState<{ move: string; eval: number; san: string } | null>(null);
   const [showBestMove, setShowBestMove] = useState(true);
+  const [autoAnalyze, setAutoAnalyze] = useState(false);
+  const lastAnalyzedFen = useRef<string>('');
+  const analysisInProgress = useRef(false);
 
-  const analyzeHumanMoves = useCallback(async () => {
-    setIsAnalyzing(true);
-    try {
-      const fenSnapshot = currentFen;
-      const tempChess = new Chess(fenSnapshot);
-      const legalMoves = tempChess.moves({ verbose: true });
-
-      if (legalMoves.length === 0) {
-        setIsAnalyzing(false);
+  const analyzeHumanMoves = useCallback(
+    async ({ force = false }: { force?: boolean } = {}) => {
+      if (!force && lastAnalyzedFen.current === currentFen) {
+        return;
+      }
+      if (analysisInProgress.current) {
         return;
       }
 
-      await engineManager.setEngine('stockfish');
-      const sfRootResult = await engineManager.getBestMove(fenSnapshot, depth);
-      setWinPercentage(evalToWinPercentage(sfRootResult.eval));
+      analysisInProgress.current = true;
+      setIsAnalyzing(true);
 
-      const perMoveDepth = Math.max(10, Math.min(depth - 2, 16));
-      const candidateMoves = legalMoves.slice(0, Math.min(8, legalMoves.length));
-      const analyses: MoveAnalysis[] = [];
+      try {
+        const fenSnapshot = currentFen;
+        const tempChess = new Chess(fenSnapshot);
+        const legalMoves = tempChess.moves({ verbose: true });
 
-      for (const move of candidateMoves) {
-        const analysisBoard = new Chess(fenSnapshot);
-        const moved = analysisBoard.move(move);
-        if (!moved) continue;
-
-        const resultingFen = analysisBoard.fen();
-        const moveResult = await engineManager.getBestMove(resultingFen, perMoveDepth);
-        const moveEval = -moveResult.eval;
-        const loss = Math.max(0, sfRootResult.eval - moveEval);
-
-        analyses.push({
-          move: `${move.from}${move.to}${move.promotion ?? ''}`,
-          san: move.san,
-          probability: 0,
-          evaluation: moveEval,
-          stockfishLoss: loss,
-          tone: getToneFromLoss(loss),
-        });
-      }
-
-      await engineManager.setEngine('maia', maiaLevel);
-      const maiaResult = await engineManager.getBestMove(fenSnapshot, 12);
-      const maiaSan = uciToSan(fenSnapshot, maiaResult.bestMove);
-      setMaiaBest({ move: maiaResult.bestMove, eval: maiaResult.eval, san: maiaSan });
-
-      const maiaProbabilities = generateMaiaProbabilities(analyses, maiaLevel, maiaResult.bestMove);
-      analyses.forEach((analysis, idx) => {
-        analysis.probability = Number(maiaProbabilities[idx].toFixed(2));
-      });
-
-      const humanMovesData = [...analyses].sort((a, b) => b.probability - a.probability).slice(0, 5);
-      const engineMovesData = [...analyses].sort((a, b) => b.evaluation - a.evaluation).slice(0, 5);
-
-      const arrows: Arrow[] = [];
-      const seen = new Set<string>();
-      const addArrow = (uci: string, color: string) => {
-        const squares = extractArrowSquares(uci);
-        if (!squares) return;
-        const key = `${squares[0]}-${squares[1]}`;
-        if (seen.has(key)) return;
-        seen.add(key);
-        arrows.push([squares[0], squares[1], color]);
-      };
-
-      if (humanMovesData[0] && humanMovesData[0].stockfishLoss > 1.5) {
-        addArrow(humanMovesData[0].move, '#ef4444');
-      }
-      if (engineMovesData[0]) {
-        addArrow(engineMovesData[0].move, '#2563eb');
-      }
-      if (maiaResult.bestMove) {
-        addArrow(maiaResult.bestMove, '#a855f7');
-      }
-
-      setBoardArrows(arrows);
-      setHumanMoves(humanMovesData);
-      setEngineMoves(engineMovesData);
-
-      const topHuman = humanMovesData[0];
-      const topEngine = engineMovesData[0];
-      if (topHuman && topEngine) {
-        const loss = topHuman.stockfishLoss;
-        const probability = topHuman.probability.toFixed(1);
-        if (loss > 3) {
-          setPositionWarning(
-            `Critical: ${probability}% of Maia ${maiaLevel} players choose ${topHuman.san}, but this collapses the position. ${topEngine.san} is winning.`
-          );
-        } else if (loss > 1.5) {
-          setPositionWarning(
-            `Sharp position: ${topHuman.san} tempts humans (${probability}%), yet Stockfish prefers ${topEngine.san}.`
-          );
-        } else if (loss > 0.5) {
-          setPositionWarning(`${topHuman.san} is popular, though ${topEngine.san} squeezes more.`);
-        } else {
-          setPositionWarning(`Human intuition aligns with engine: ${topHuman.san} is both natural and strongest.`);
+        if (legalMoves.length === 0) {
+          setHumanMoves([]);
+          setEngineMoves([]);
+          setBoardArrows([]);
+          setPositionWarning('');
+          lastAnalyzedFen.current = fenSnapshot;
+          return;
         }
+
+        await engineManager.setEngine('stockfish');
+        const sfRootResult = await engineManager.getBestMove(fenSnapshot, depth);
+        setWinPercentage(evalToWinPercentage(sfRootResult.eval));
+
+        const perMoveDepth = Math.max(10, Math.min(depth - 2, 16));
+        const candidateMoves = legalMoves.slice(0, Math.min(8, legalMoves.length));
+        const analyses: MoveAnalysis[] = [];
+
+        for (const move of candidateMoves) {
+          const analysisBoard = new Chess(fenSnapshot);
+          const moved = analysisBoard.move(move);
+          if (!moved) continue;
+
+          const resultingFen = analysisBoard.fen();
+          const moveResult = await engineManager.getBestMove(resultingFen, perMoveDepth);
+          const moveEval = -moveResult.eval;
+          const loss = Math.max(0, sfRootResult.eval - moveEval);
+
+          analyses.push({
+            move: `${move.from}${move.to}${move.promotion ?? ''}`,
+            san: move.san,
+            probability: 0,
+            evaluation: moveEval,
+            stockfishLoss: loss,
+            tone: getToneFromLoss(loss),
+          });
+        }
+
+        await engineManager.setEngine('maia', maiaLevel);
+        const maiaResult = await engineManager.getBestMove(fenSnapshot, 12);
+        const maiaSan = uciToSan(fenSnapshot, maiaResult.bestMove);
+        setMaiaBest({ move: maiaResult.bestMove, eval: maiaResult.eval, san: maiaSan });
+
+        const maiaProbabilities = generateMaiaProbabilities(analyses, maiaLevel, maiaResult.bestMove);
+        analyses.forEach((analysis, idx) => {
+          analysis.probability = Number(maiaProbabilities[idx].toFixed(2));
+        });
+
+        const humanMovesData = [...analyses].sort((a, b) => b.probability - a.probability).slice(0, 5);
+        const engineMovesData = [...analyses].sort((a, b) => b.evaluation - a.evaluation).slice(0, 5);
+
+        const arrows: Arrow[] = [];
+        const seen = new Set<string>();
+        const addArrow = (uci: string, color: string) => {
+          const squares = extractArrowSquares(uci);
+          if (!squares) return;
+          const key = `${squares[0]}-${squares[1]}-${color}`;
+          if (seen.has(key)) return;
+          seen.add(key);
+          arrows.push([squares[0], squares[1], color]);
+        };
+
+        if (humanMovesData[0] && humanMovesData[0].stockfishLoss > 1.5) {
+          addArrow(humanMovesData[0].move, '#ef4444');
+        }
+        if (engineMovesData[0]) {
+          addArrow(engineMovesData[0].move, '#2563eb');
+        }
+        if (maiaResult.bestMove) {
+          addArrow(maiaResult.bestMove, '#a855f7');
+        }
+
+        setBoardArrows(arrows);
+        setHumanMoves(humanMovesData);
+        setEngineMoves(engineMovesData);
+
+        const topHuman = humanMovesData[0];
+        const topEngine = engineMovesData[0];
+        if (topHuman && topEngine) {
+          const loss = topHuman.stockfishLoss;
+          const probability = topHuman.probability.toFixed(1);
+          if (loss > 3) {
+            setPositionWarning(
+              `Critical: ${probability}% of Maia ${maiaLevel} players choose ${topHuman.san}, but this collapses the position. ${topEngine.san} is winning.`
+            );
+          } else if (loss > 1.5) {
+            setPositionWarning(
+              `Sharp position: ${topHuman.san} tempts humans (${probability}%), yet Stockfish prefers ${topEngine.san}.`
+            );
+          } else if (loss > 0.5) {
+            setPositionWarning(`${topHuman.san} is popular, though ${topEngine.san} squeezes more.`);
+          } else {
+            setPositionWarning(`Human intuition aligns with engine: ${topHuman.san} is both natural and strongest.`);
+          }
+        } else {
+          setPositionWarning('');
+        }
+
+        lastAnalyzedFen.current = fenSnapshot;
+      } catch (error) {
+        console.error('Human-aware analysis failed:', error);
+      } finally {
+        analysisInProgress.current = false;
+        setIsAnalyzing(false);
       }
-    } catch (error) {
-      console.error('Human-aware analysis failed:', error);
-    } finally {
-      setIsAnalyzing(false);
+    },
+    [currentFen, depth, maiaLevel]
+  );
+
+  // Auto-analyze effect
+  useEffect(() => {
+    if (autoAnalyze && currentFen !== lastAnalyzedFen.current && !analysisInProgress.current) {
+      const timer = setTimeout(() => {
+        analyzeHumanMoves();
+      }, 500); // Debounce by 500ms to avoid excessive analysis
+
+      return () => clearTimeout(timer);
     }
-  }, [currentFen, depth, maiaLevel]);
+  }, [autoAnalyze, currentFen, analyzeHumanMoves]);
 
   const movesByRatingData = useMemo(() => {
     if (humanMoves.length === 0) return [];
@@ -443,11 +478,20 @@ export function AnalysisPanel() {
         {/* Human-Aware Analysis */}
         <CollapsibleSection title="Human AI Analysis" icon="🧠" id="human-ai" defaultOpen={false}>
           <div className="space-y-4">
-            <div className="flex items-center justify-between mb-3">
+            {autoAnalyze && (
+              <div className="flex items-center gap-2 bg-purple-900/30 border border-purple-600/40 rounded-lg px-3 py-2 mb-3">
+                <svg className="w-4 h-4 text-purple-300 animate-pulse" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                </svg>
+                <span className="text-xs text-purple-200 font-medium">Auto-analysis enabled</span>
+              </div>
+            )}
+
+            <div className="flex flex-wrap items-center justify-between gap-3">
               <select
                 value={maiaLevel}
                 onChange={(e) => setMaiaLevel(Number(e.target.value) as MaiaLevel)}
-                className="bg-[#312e2b] px-3 py-2 rounded-lg border border-gray-700/50 text-sm text-white cursor-pointer hover:border-gray-600 flex-1 mr-2"
+                className="bg-[#312e2b] px-3 py-2 rounded-lg border border-gray-700/50 text-sm text-white cursor-pointer hover:border-gray-600 flex-1 min-w-[150px]"
               >
                 {MAIA_LEVELS.map((level) => (
                   <option key={level} value={level}>
@@ -455,13 +499,32 @@ export function AnalysisPanel() {
                   </option>
                 ))}
               </select>
-              <button
-                onClick={analyzeHumanMoves}
-                disabled={isAnalyzing}
-                className="px-4 py-2 bg-purple-600 hover:bg-purple-500 disabled:bg-gray-600 disabled:cursor-not-allowed text-white text-sm font-semibold rounded-lg transition-colors"
-              >
-                {isAnalyzing ? 'Analyzing...' : 'Analyze'}
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => analyzeHumanMoves({ force: true })}
+                  disabled={isAnalyzing}
+                  className="px-4 py-2 bg-purple-600 hover:bg-purple-500 disabled:bg-gray-600 disabled:cursor-not-allowed text-white text-sm font-semibold rounded-lg transition-colors"
+                  title={autoAnalyze ? 'Force immediate analysis' : 'Analyze current position'}
+                >
+                  {isAnalyzing ? 'Analyzing...' : 'Analyze'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setAutoAnalyze((prev) => !prev)}
+                  role="switch"
+                  aria-checked={autoAnalyze}
+                  title={autoAnalyze ? 'Disable auto-analysis' : 'Enable auto-analysis'}
+                  className={`relative inline-flex h-7 w-12 flex-shrink-0 items-center rounded-full border-2 transition-all ${autoAnalyze ? 'bg-purple-600 border-purple-500' : 'bg-gray-700 border-gray-600'}`}
+                >
+                  <span
+                    className={`inline-block h-5 w-5 rounded-full bg-white shadow-lg transition-transform ${autoAnalyze ? 'translate-x-5' : 'translate-x-0.5'}`}
+                  />
+                  <span className="sr-only">Toggle auto analysis</span>
+                </button>
+                <span className={`text-xs font-medium ${autoAnalyze ? 'text-purple-300' : 'text-gray-400'}`}>
+                  Auto
+                </span>
+              </div>
             </div>
 
             {isAnalyzing && (
