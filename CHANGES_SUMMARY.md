@@ -253,6 +253,22 @@ A 404 error was occurring when trying to load the ECO (Encyclopedia of Chess Ope
 **Documentation:**
 - `ECO_DATABASE_FIX.md` - Details about the ECO database fix
 
+## Additional Fix - Book Moves Detection
+
+Book moves (opening theory positions) were disappearing due to a race condition.
+
+**Changes:**
+- Made `isBookPosition()` async to wait for database loading
+- Updated both call sites in `gameStore.ts` to await the result
+- Ensures book moves are always detected, even on fresh page load
+
+**Files Modified:**
+- `frontend/src/utils/bookMoves.ts` - Made method async
+- `frontend/src/store/gameStore.ts` - Added await at both call sites
+
+**Documentation:**
+- `BOOK_MOVES_FIX.md` - Details about the book moves fix
+
 ---
 
 **Status**: ✅ Ready for Review & Merge  

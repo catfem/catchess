@@ -93,9 +93,12 @@ class BookMovesDetector {
 
   /**
    * Check if a position (FEN) is a known book position
-   * Note: This is synchronous and uses already-loaded data
+   * This is async to ensure database is loaded before checking
    */
-  isBookPosition(fen: string): boolean {
+  async isBookPosition(fen: string): Promise<boolean> {
+    // Ensure database is loaded
+    await this.loadDatabase();
+    
     if (!this.ecoData || Object.keys(this.ecoData).length === 0) {
       return false; // No data loaded yet
     }

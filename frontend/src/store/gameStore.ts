@@ -184,7 +184,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
         const afterResult = await engineManager.getBestMove(tempChess.fen(), 15);
         
         // Check if the position AFTER this move is a book move
-        const isBookMove = bookMovesDetector.isBookPosition(tempChess.fen());
+        const isBookMove = await bookMovesDetector.isBookPosition(tempChess.fen());
         
         const moveAnalysis: MoveAnalysis = {
           move: move.san,
@@ -383,7 +383,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
         );
 
         // Check if the position AFTER this move is a book move
-        const isBookMove = bookMovesDetector.isBookPosition(item.fenAfter);
+        const isBookMove = await bookMovesDetector.isBookPosition(item.fenAfter);
         
         // Update the move analysis
         const updatedHistory = [...get().moveHistory];
