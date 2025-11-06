@@ -5,10 +5,33 @@ import fs from 'fs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const dbPath = path.join(__dirname, '..', 'chess_openings.db');
-const ecoPath = path.join(__dirname, '..', '..', 'frontend', 'public', 'eco_interpolated.json');
 
-console.log('Loading ECO database from:', ecoPath);
-const ecoData = JSON.parse(fs.readFileSync(ecoPath, 'utf8'));
+console.log('📚 Loading ECO database from local chunked files...');
+
+// Load all ECO chunks (ecoA-E.json)
+const ecoData = {};
+const categories = ['A', 'B', 'C', 'D', 'E'];
+
+for (const cat of categories) {
+  const ecoPath = path.join(__dirname, '..', '..', 'frontend', 'public', `eco${cat}.json`);
+  
+  if (!fs.existsSync(ecoPath)) {
+    console.error(`❌ ECO chunk ${cat} not found at ${ecoPath}`);
+    process.exit(1);
+  }
+  
+  try {
+    const chunkData = JSON.parse(fs.readFileSync(ecoPath, 'utf8'));
+    Object.assign(ecoData, chunkData);
+    console.log(`  ✓ Loaded ECO chunk ${cat}: ${Object.keys(chunkData).length} positions`);
+  } catch (error) {
+    console.error(`❌ Failed to load ECO chunk ${cat}:`, error.message);
+    process.exit(1);
+  }
+}
+
+const totalPositions = Object.keys(ecoData).length;
+console.log(`✓ Total ECO positions loaded: ${totalPositions}`);
 
 console.log('Opening database at:', dbPath);
 const db = new Database(dbPath);

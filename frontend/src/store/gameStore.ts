@@ -169,47 +169,73 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
       for (const move of moves) {
         const beforeMove = tempChess.fen();
-        const result = await engineManager.getBestMove(beforeMove, 15);
-        
-        // Get evaluation after playing the best move (what it SHOULD have been)
-        const tempChessForBest = new Chess(beforeMove);
-        const bestMoveFrom = result.bestMove.substring(0, 2);
-        const bestMoveTo = result.bestMove.substring(2, 4);
-        const bestMovePromo = result.bestMove.length > 4 ? result.bestMove[4] : undefined;
-        tempChessForBest.move({ from: bestMoveFrom, to: bestMoveTo, promotion: bestMovePromo });
-        const bestMoveResult = await engineManager.getBestMove(tempChessForBest.fen(), 15);
-        const evalAfterBestMove = bestMoveResult.eval;
-        
         tempChess.move(move);
-        const afterResult = await engineManager.getBestMove(tempChess.fen(), 15);
+        const afterMove = tempChess.fen();
         
-        // Check if the position AFTER this move is a book move
-        const isBookMove = await bookMovesDetector.isBookPosition(tempChess.fen());
+        // PRIORITY CHECK: Check if this is a book move BEFORE running engine analysis
+        // This prevents book moves from being covered by engine labels
+        console.log(`📚 Checking if ${move.san} is a book move...`);
+        const isBookMove = await bookMovesDetector.isBookPosition(afterMove);
+        console.log(`  Book move check result: ${isBookMove ? '✓ YES' : '✗ NO'}`);
         
-        const moveAnalysis: MoveAnalysis = {
-          move: move.san,
-          from: move.from,
-          to: move.to,
-          san: move.san,
-          eval: afterResult.eval,
-          label: labelMove(
-            move.from + move.to,
-            result.bestMove,
-            afterResult.eval,
-            evalAfterBestMove, // Compare to eval after best move
-            isBookMove, // Use ECO book move detection
-            move.color,
-            afterResult.mate !== undefined,
-            afterResult.mate
-          ),
-          cp: afterResult.cp || 0,
-          mate: afterResult.mate,
-          bestMove: result.bestMove,
-          pv: afterResult.pv,
-          fen: tempChess.fen(),
-          moveNumber: Math.floor(tempChess.moveNumber()),
-          color: move.color,
-        };
+        let moveAnalysis: MoveAnalysis;
+        
+        if (isBookMove) {
+          // This is a book move - skip engine analysis and label as book
+          console.log(`📖 Move ${move.san} is a book move - skipping engine analysis`);
+          
+          moveAnalysis = {
+            move: move.san,
+            from: move.from,
+            to: move.to,
+            san: move.san,
+            eval: 0, // Book moves don't need evaluation
+            label: 'book',
+            cp: 0,
+            fen: afterMove,
+            moveNumber: Math.floor(tempChess.moveNumber()),
+            color: move.color,
+          };
+        } else {
+          // Not a book move - run full engine analysis
+          const result = await engineManager.getBestMove(beforeMove, 15);
+          
+          // Get evaluation after playing the best move (what it SHOULD have been)
+          const tempChessForBest = new Chess(beforeMove);
+          const bestMoveFrom = result.bestMove.substring(0, 2);
+          const bestMoveTo = result.bestMove.substring(2, 4);
+          const bestMovePromo = result.bestMove.length > 4 ? result.bestMove[4] : undefined;
+          tempChessForBest.move({ from: bestMoveFrom, to: bestMoveTo, promotion: bestMovePromo });
+          const bestMoveResult = await engineManager.getBestMove(tempChessForBest.fen(), 15);
+          const evalAfterBestMove = bestMoveResult.eval;
+          
+          const afterResult = await engineManager.getBestMove(afterMove, 15);
+          
+          moveAnalysis = {
+            move: move.san,
+            from: move.from,
+            to: move.to,
+            san: move.san,
+            eval: afterResult.eval,
+            label: labelMove(
+              move.from + move.to,
+              result.bestMove,
+              afterResult.eval,
+              evalAfterBestMove, // Compare to eval after best move
+              false, // Not a book move (already checked above)
+              move.color,
+              afterResult.mate !== undefined,
+              afterResult.mate
+            ),
+            cp: afterResult.cp || 0,
+            mate: afterResult.mate,
+            bestMove: result.bestMove,
+            pv: afterResult.pv,
+            fen: afterMove,
+            moveNumber: Math.floor(tempChess.moveNumber()),
+            color: move.color,
+          };
+        }
         
         analysis.push(moveAnalysis);
       }
@@ -359,60 +385,84 @@ export const useGameStore = create<GameStore>((set, get) => ({
       try {
         console.log(`Analyzing move ${item.moveIndex + 1}: ${item.move}`);
         
-        await engineManager.setEngine(engineSettings.engineType, engineSettings.maiaLevel);
-        
-        // Get best move before the user's move was played
-        const beforeResult = await engineManager.getBestMove(
-          item.fenBefore, 
-          engineSettings.depth
-        );
-        
-        // Get evaluation after playing the best move (what it SHOULD have been)
-        const tempChessForBest = new Chess(item.fenBefore);
-        const bestMoveFrom = beforeResult.bestMove.substring(0, 2);
-        const bestMoveTo = beforeResult.bestMove.substring(2, 4);
-        const bestMovePromo = beforeResult.bestMove.length > 4 ? beforeResult.bestMove[4] : undefined;
-        tempChessForBest.move({ from: bestMoveFrom, to: bestMoveTo, promotion: bestMovePromo });
-        const bestMoveResult = await engineManager.getBestMove(tempChessForBest.fen(), engineSettings.depth);
-        const evalAfterBestMove = bestMoveResult.eval;
-        
-        // Get evaluation after the user's move
-        const afterResult = await engineManager.getBestMove(
-          item.fenAfter,
-          engineSettings.depth
-        );
-
-        // Check if the position AFTER this move is a book move
+        // PRIORITY CHECK: Check if this is a book move BEFORE running engine analysis
+        // This prevents book moves from being covered by engine labels
+        console.log(`📚 Checking if move ${item.moveIndex + 1} is a book move...`);
+        console.log(`  FEN after move: ${item.fenAfter}`);
         const isBookMove = await bookMovesDetector.isBookPosition(item.fenAfter);
+        console.log(`  Book move check result: ${isBookMove ? '✓ YES' : '✗ NO'}`);
         
-        // Update the move analysis
-        const updatedHistory = [...get().moveHistory];
-        if (updatedHistory[item.moveIndex]) {
-          // Store evaluation from White's perspective (Stockfish convention)
-          // Positive = White advantage, Negative = Black advantage
-          updatedHistory[item.moveIndex] = {
-            ...updatedHistory[item.moveIndex],
-            eval: afterResult.eval,  // ALWAYS from White's perspective
-            cp: afterResult.cp || 0,
-            mate: afterResult.mate,
-            bestMove: beforeResult.bestMove,
-            depth: engineSettings.depth,
-            isAnalyzing: false,
-            label: labelMove(
-              item.move,
-              beforeResult.bestMove,
-              afterResult.eval,
-              evalAfterBestMove, // Compare to eval after best move, not previous move
-              isBookMove, // Use ECO book move detection
-              item.color,
-              afterResult.mate !== undefined,
-              afterResult.mate
-            ),
-          };
+        if (isBookMove) {
+          // This is a book move - skip engine analysis and label as book
+          console.log(`📖 Move ${item.moveIndex + 1} is a book move - skipping engine analysis`);
           
-          console.log(`Move ${item.moveIndex + 1} analyzed: ${updatedHistory[item.moveIndex].label}, eval: ${afterResult.eval.toFixed(2)}`);
+          const updatedHistory = [...get().moveHistory];
+          if (updatedHistory[item.moveIndex]) {
+            updatedHistory[item.moveIndex] = {
+              ...updatedHistory[item.moveIndex],
+              eval: 0, // Book moves don't need evaluation
+              cp: 0,
+              label: 'book',
+              isAnalyzing: false,
+            };
+            
+            console.log(`Move ${item.moveIndex + 1} labeled as: book`);
+            set({ moveHistory: updatedHistory });
+          }
+        } else {
+          // Not a book move - run full engine analysis
+          await engineManager.setEngine(engineSettings.engineType, engineSettings.maiaLevel);
           
-          set({ moveHistory: updatedHistory });
+          // Get best move before the user's move was played
+          const beforeResult = await engineManager.getBestMove(
+            item.fenBefore, 
+            engineSettings.depth
+          );
+          
+          // Get evaluation after playing the best move (what it SHOULD have been)
+          const tempChessForBest = new Chess(item.fenBefore);
+          const bestMoveFrom = beforeResult.bestMove.substring(0, 2);
+          const bestMoveTo = beforeResult.bestMove.substring(2, 4);
+          const bestMovePromo = beforeResult.bestMove.length > 4 ? beforeResult.bestMove[4] : undefined;
+          tempChessForBest.move({ from: bestMoveFrom, to: bestMoveTo, promotion: bestMovePromo });
+          const bestMoveResult = await engineManager.getBestMove(tempChessForBest.fen(), engineSettings.depth);
+          const evalAfterBestMove = bestMoveResult.eval;
+          
+          // Get evaluation after the user's move
+          const afterResult = await engineManager.getBestMove(
+            item.fenAfter,
+            engineSettings.depth
+          );
+          
+          // Update the move analysis
+          const updatedHistory = [...get().moveHistory];
+          if (updatedHistory[item.moveIndex]) {
+            // Store evaluation from White's perspective (Stockfish convention)
+            // Positive = White advantage, Negative = Black advantage
+            updatedHistory[item.moveIndex] = {
+              ...updatedHistory[item.moveIndex],
+              eval: afterResult.eval,  // ALWAYS from White's perspective
+              cp: afterResult.cp || 0,
+              mate: afterResult.mate,
+              bestMove: beforeResult.bestMove,
+              depth: engineSettings.depth,
+              isAnalyzing: false,
+              label: labelMove(
+                item.move,
+                beforeResult.bestMove,
+                afterResult.eval,
+                evalAfterBestMove, // Compare to eval after best move, not previous move
+                false, // Not a book move (already checked above)
+                item.color,
+                afterResult.mate !== undefined,
+                afterResult.mate
+              ),
+            };
+            
+            console.log(`Move ${item.moveIndex + 1} analyzed: ${updatedHistory[item.moveIndex].label}, eval: ${afterResult.eval.toFixed(2)}`);
+            
+            set({ moveHistory: updatedHistory });
+          }
         }
       } catch (error) {
         console.error(`Error analyzing move ${item.moveIndex}:`, error);

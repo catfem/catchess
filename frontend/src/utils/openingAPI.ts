@@ -146,23 +146,39 @@ class OpeningAPIManager {
 
   private async loadDatabaseInternal(): Promise<void> {
     try {
-      console.log('Loading ECO opening database from static file...');
+      console.log('📚 Loading ECO opening database from local files...');
       
-      // Load from public directory (works with Cloudflare Pages)
-      const response = await fetch('/eco_interpolated.json');
+      // Always use local chunked files (ecoA.json through ecoE.json)
+      // This ensures reliable offline access and avoids CDN dependencies
+      this.ecoData = {};
       
-      if (!response.ok) {
-        throw new Error(`Failed to load ECO database: ${response.statusText}`);
-      }
-
-      this.ecoData = await response.json();
+      const categories = ['A', 'B', 'C', 'D', 'E'];
+      const loadPromises = categories.map(async (cat) => {
+        try {
+          const response = await fetch(`/eco${cat}.json`);
+          if (!response.ok) {
+            console.warn(`⚠️ Failed to load ECO chunk ${cat}: ${response.statusText}`);
+            return;
+          }
+          const chunkData: EcoData = await response.json();
+          if (this.ecoData) {
+            Object.assign(this.ecoData, chunkData);
+          }
+          console.log(`  ✓ ECO chunk ${cat}: ${Object.keys(chunkData).length} positions`);
+        } catch (error) {
+          console.warn(`⚠️ Failed to load ECO chunk ${cat}:`, error);
+        }
+      });
+      
+      await Promise.all(loadPromises);
       
       // Process and index openings
       this.indexOpenings();
       
-      console.log(`✓ ECO database loaded: ${this.openingsMap.size} unique openings`);
+      const totalPositions = this.ecoData ? Object.keys(this.ecoData).length : 0;
+      console.log(`✓ ECO database loaded successfully: ${this.openingsMap.size} unique openings (${totalPositions} positions)`);
     } catch (error) {
-      console.error('Failed to load ECO database:', error);
+      console.error('❌ Failed to load ECO database:', error);
       this.ecoData = {};
     } finally {
       this.loading = false;

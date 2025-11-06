@@ -157,16 +157,36 @@ function generateDescription(name, eco, category, moves) {
 }
 
 function populateOpeningsDatabase(db) {
-  // Try to load from ECO JSON file
-  const ecoPath = path.join(__dirname, '..', '..', 'frontend', 'public', 'eco_interpolated.json');
+  // Load from local chunked ECO JSON files (ecoA-E.json)
+  console.log('📚 Loading ECO database from local chunked files...');
   
-  if (!fs.existsSync(ecoPath)) {
-    console.warn('ECO database file not found, skipping population');
+  const ecoData = {};
+  const categories = ['A', 'B', 'C', 'D', 'E'];
+  
+  for (const cat of categories) {
+    const ecoPath = path.join(__dirname, '..', '..', 'frontend', 'public', `eco${cat}.json`);
+    
+    if (!fs.existsSync(ecoPath)) {
+      console.warn(`⚠️ ECO chunk ${cat} not found at ${ecoPath}`);
+      continue;
+    }
+    
+    try {
+      const chunkData = JSON.parse(fs.readFileSync(ecoPath, 'utf8'));
+      Object.assign(ecoData, chunkData);
+      console.log(`  ✓ Loaded ECO chunk ${cat}: ${Object.keys(chunkData).length} positions`);
+    } catch (error) {
+      console.error(`❌ Failed to load ECO chunk ${cat}:`, error.message);
+    }
+  }
+  
+  const totalPositions = Object.keys(ecoData).length;
+  if (totalPositions === 0) {
+    console.warn('⚠️ No ECO data loaded, skipping database population');
     return;
   }
   
-  console.log('Loading ECO database from:', ecoPath);
-  const ecoData = JSON.parse(fs.readFileSync(ecoPath, 'utf8'));
+  console.log(`✓ Total ECO positions loaded: ${totalPositions}`);
   
   // Extract unique openings
   const openingsMap = new Map();
