@@ -204,10 +204,39 @@ Move 1 labeled as: book
 - ✅ Works in analyze mode and vs-engine mode
 - ✅ Works with batch game analysis
 
-## Notes
+## Important Notes
 
-- Starting position (rnbqkbnr...) is NOT in ECO database (by design)
-- ECO database contains positions after 2-10 moves typically
+### ECO Database Coverage
+
+- **Starting position (rnbqkbnr...) is NOT in ECO database** (by design)
+- **First 1-3 moves are typically NOT in ECO database**
+- ECO database contains **named opening variations** after 3-10 moves
+- Examples of positions IN database:
+  - Ruy Lopez (1.e4 e5 2.Nf3 Nc6 3.Bb5) - ✅ C60
+  - Sicilian Najdorf (1.e4 c5 2.Nf3 d6 3.d4 cxd4 4.Nxd4 Nf6 5.Nc3 a6) - ✅ B90
+  - Queen's Gambit (1.d4 d5 2.c4) - ✅ D06
+
+### Expected Behavior
+
+1. **Early moves (1-3)**: Analyzed by engine, labeled as best/good/etc.
+2. **Later moves (3+)**: Checked against ECO database first
+3. **Book moves**: Labeled as 📖 "book", skip engine analysis
+4. **Non-book moves**: Full engine analysis
+
+### Console Logging
+
+Detailed logs now show exactly what's happening:
+```
+📚 Checking if move 5 is a book move...
+📖 Book database status: 12379 positions loaded
+  ✓ Partial FEN match found!
+📖 Move 5 is a book move - skipping engine analysis
+Move 5 labeled as: book
+```
+
+### Performance Benefits
+
 - Book moves have eval = 0 (neutral) as they're theoretical
-- Performance gain is significant for opening analysis
+- Performance gain starts at move 3-5 (once in named openings)
+- Very significant for deep opening analysis (10+ moves)
 - Clear separation between theory (book) and calculation (engine)

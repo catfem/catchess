@@ -99,19 +99,26 @@ class BookMovesDetector {
     // Ensure database is loaded
     await this.loadDatabase();
     
-    if (!this.ecoData || Object.keys(this.ecoData).length === 0) {
+    const dbSize = Object.keys(this.ecoData).length;
+    console.log(`📖 Book database status: ${dbSize} positions loaded`);
+    
+    if (!this.ecoData || dbSize === 0) {
+      console.warn('⚠️ ECO database not loaded - cannot check book moves');
       return false; // No data loaded yet
     }
 
     // Check cache first
     if (this.positionCache.has(fen)) {
-      return this.positionCache.get(fen)!;
+      const cachedResult = this.positionCache.get(fen)!;
+      console.log(`  ✓ Found in cache: ${cachedResult}`);
+      return cachedResult;
     }
 
     let isBook = false;
 
     // Try exact match first
     if (fen in this.ecoData) {
+      console.log(`  ✓ Exact FEN match found!`);
       isBook = true;
     } else {
       // FEN string might have different move counts, so try without those
@@ -121,14 +128,21 @@ class BookMovesDetector {
       if (parts.length >= 4) {
         // Try with first 4 parts (position, side, castling, en passant)
         const keyParts = parts.slice(0, 4).join(' ');
+        console.log(`  Searching for key parts: ${keyParts}`);
         
         // Check all entries with matching key parts
         for (const ecoFen in this.ecoData) {
           const ecoKeyParts = ecoFen.split(' ').slice(0, 4).join(' ');
           if (keyParts === ecoKeyParts) {
+            console.log(`  ✓ Partial FEN match found!`);
+            console.log(`  Matched ECO FEN: ${ecoFen}`);
             isBook = true;
             break;
           }
+        }
+        
+        if (!isBook) {
+          console.log(`  ✗ No match found in ${dbSize} positions`);
         }
       }
     }

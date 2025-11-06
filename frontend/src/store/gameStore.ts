@@ -174,13 +174,15 @@ export const useGameStore = create<GameStore>((set, get) => ({
         
         // PRIORITY CHECK: Check if this is a book move BEFORE running engine analysis
         // This prevents book moves from being covered by engine labels
+        console.log(`📚 Checking if ${move.san} is a book move...`);
         const isBookMove = await bookMovesDetector.isBookPosition(afterMove);
+        console.log(`  Book move check result: ${isBookMove ? '✓ YES' : '✗ NO'}`);
         
         let moveAnalysis: MoveAnalysis;
         
         if (isBookMove) {
           // This is a book move - skip engine analysis and label as book
-          console.log(`Move ${move.san} is a book move - skipping engine analysis`);
+          console.log(`📖 Move ${move.san} is a book move - skipping engine analysis`);
           
           moveAnalysis = {
             move: move.san,
@@ -385,11 +387,14 @@ export const useGameStore = create<GameStore>((set, get) => ({
         
         // PRIORITY CHECK: Check if this is a book move BEFORE running engine analysis
         // This prevents book moves from being covered by engine labels
+        console.log(`📚 Checking if move ${item.moveIndex + 1} is a book move...`);
+        console.log(`  FEN after move: ${item.fenAfter}`);
         const isBookMove = await bookMovesDetector.isBookPosition(item.fenAfter);
+        console.log(`  Book move check result: ${isBookMove ? '✓ YES' : '✗ NO'}`);
         
         if (isBookMove) {
           // This is a book move - skip engine analysis and label as book
-          console.log(`Move ${item.moveIndex + 1} is a book move - skipping engine analysis`);
+          console.log(`📖 Move ${item.moveIndex + 1} is a book move - skipping engine analysis`);
           
           const updatedHistory = [...get().moveHistory];
           if (updatedHistory[item.moveIndex]) {
