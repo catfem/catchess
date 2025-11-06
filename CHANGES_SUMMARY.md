@@ -222,6 +222,21 @@ After the initial fix, a performance issue was discovered during Human AI move c
 **Documentation:**
 - `ANALYSIS_FIX.md` - Complete details of the follow-up fix
 
+## Additional Fix - PWA Meta Tag Update
+
+A deprecated meta tag was identified and updated to use modern web standards.
+
+**Changes:**
+- Added `<meta name="mobile-web-app-capable" content="yes">` to `frontend/index.html`
+- Kept `apple-mobile-web-app-capable` for backward compatibility with older iOS
+- Ensures standards compliance while maintaining full device support
+
+**Files Modified:**
+- `frontend/index.html` - Added modern PWA meta tag
+
+**Documentation:**
+- `PWA_META_TAG_FIX.md` - Details about the meta tag update
+
 ---
 
 **Status**: ✅ Ready for Review & Merge  

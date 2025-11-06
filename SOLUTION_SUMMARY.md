@@ -4,8 +4,9 @@
 
 **Problem 1:** Browser MIME type error when trying to load non-existent lc0.js  
 **Problem 2:** Human AI analysis slow due to repeated LC0 availability checks  
-**Solution:** Pre-check with caching, timeout protection, and graceful fallback  
-**Result:** ✅ No errors, 2x faster analysis, clean console output  
+**Problem 3:** Deprecated PWA meta tag (apple-mobile-web-app-capable)  
+**Solution:** Pre-check with caching, timeout protection, graceful fallback, and modern standards  
+**Result:** ✅ No errors, 2x faster analysis, clean console output, standards compliant  
 
 ## What Was Fixed
 
@@ -45,6 +46,24 @@ because its MIME type ('text/html') is not executable
 - Added 1-second timeout with AbortController
 - Reduced console logging to once
 
+### Issue 3: Deprecated PWA Meta Tag
+
+**Warning:**
+```
+<meta name="apple-mobile-web-app-capable" content="yes"> is deprecated. 
+Please include <meta name="mobile-web-app-capable" content="yes">
+```
+
+**Cause:**
+- Only using Apple-specific meta tag
+- Missing modern W3C standard tag
+- Not compliant with current web standards
+
+**Fix:**
+- Added modern `mobile-web-app-capable` meta tag
+- Kept Apple-specific tag for backward compatibility
+- Now supports all modern browsers and older iOS devices
+
 ## Key Changes
 
 ### File: `frontend/src/utils/maiaEngine.ts`
@@ -79,6 +98,18 @@ private async checkLC0Availability(): Promise<boolean> {
 }
 ```
 
+### File: `frontend/index.html`
+
+```html
+<!-- PWA Mobile Meta Tags -->
+<meta name="mobile-web-app-capable" content="yes" />
+
+<!-- iOS Meta Tags -->
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="CatChess" />
+```
+
 ## Performance Improvements
 
 | Metric | Before | After | Improvement |
@@ -103,6 +134,7 @@ private async checkLC0Availability(): Promise<boolean> {
 ✅ Defensive programming patterns  
 ✅ Well-documented code  
 ✅ Comprehensive documentation  
+✅ Standards-compliant PWA implementation  
 
 ### For Production
 ✅ Works on Cloudflare Pages out of box  
@@ -110,12 +142,14 @@ private async checkLC0Availability(): Promise<boolean> {
 ✅ Graceful degradation  
 ✅ Future-proof (works if LC0 added later)  
 ✅ No performance penalty  
+✅ Better PWA support across all browsers  
 
 ## Files Modified
 
 ### Code Changes
 1. **frontend/src/utils/maiaEngine.ts** - Main fix implementation
 2. **frontend/public/maia/README.md** - Updated troubleshooting
+3. **frontend/index.html** - Added modern PWA meta tag
 
 ### Documentation Added
 1. **BUGFIX_MIME_TYPE_ERROR.md** - Technical details of MIME fix
@@ -123,7 +157,8 @@ private async checkLC0Availability(): Promise<boolean> {
 3. **MAIA_DEPLOYMENT.md** - Comprehensive deployment guide
 4. **CHANGES_SUMMARY.md** - Summary of all changes
 5. **TEST_VERIFICATION.md** - Test results and verification
-6. **SOLUTION_SUMMARY.md** - This file
+6. **PWA_META_TAG_FIX.md** - PWA meta tag update details
+7. **SOLUTION_SUMMARY.md** - This file
 
 ## Console Output Comparison
 
