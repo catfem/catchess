@@ -112,6 +112,15 @@ lc0 --weights=maia-1500.pb.gz
 
 ## Troubleshooting
 
+### MIME Type Error (FIXED)
+
+If you previously saw:
+```
+Refused to execute script from '/lc0.js' because its MIME type ('text/html') is not executable
+```
+
+**This is now fixed!** The app checks if LC0 is available before attempting to load it.
+
 ### Models Not Loading
 
 1. Check that model files exist in this directory
@@ -121,10 +130,11 @@ lc0 --weights=maia-1500.pb.gz
 
 ### LC0 Not Available
 
-If you see "LC0 not available, falling back to Stockfish":
+If you see "ℹ LC0 not available (lc0.js not found)":
 - This is normal if lc0.js isn't in frontend/public/
-- App will use Stockfish to simulate human play
+- App will automatically use Stockfish to simulate human play
 - To get true Maia behavior, compile LC0 to WASM
+- See `/MAIA_DEPLOYMENT.md` for detailed deployment instructions
 
 ### Performance Issues
 
