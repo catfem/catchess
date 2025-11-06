@@ -2,7 +2,7 @@
 
 ## Summary
 
-Three critical issues have been identified and fixed in the chess analysis system:
+Three critical issues have been identified and fixed in the chess analysis system::
 
 1. ✅ **Evaluation Display Consistency** - Fixed sign flipping issue
 2. ✅ **Book Label Bug** - Fixed incorrect labeling of opening moves  
