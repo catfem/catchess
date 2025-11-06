@@ -1,12 +1,12 @@
 import { useState } from 'react';
 import { ChessBoard } from './components/ChessBoard';
-import { MoveList } from './components/MoveList';
 import { EvaluationBar } from './components/EvaluationBar';
 import { GameControls } from './components/GameControls';
 import { PGNImport } from './components/PGNImport';
 import { StockfishStatus } from './components/StockfishStatus';
 import { OpeningPanel } from './components/OpeningPanel';
 import { ChessClock } from './components/ChessClock';
+import { AnalysisPanel } from './components/AnalysisPanel';
 import { useGameStore } from './store/gameStore';
 
 function App() {
@@ -19,10 +19,10 @@ function App() {
     undoMove 
   } = useGameStore();
   
-  const [showSidebar, setShowSidebar] = useState(true);
-  const [showAnalysis, setShowAnalysis] = useState(true);
+  const [showLeftSidebar, setShowLeftSidebar] = useState(true);
+  const [showRightPanel, setShowRightPanel] = useState(true);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-  const currentMove = moveHistory[currentMoveIndex >= 0 ? currentMoveIndex : moveHistory.length - 1];
   const whiteToMove = chess.turn() === 'w';
 
   // Navigation
@@ -36,43 +36,62 @@ function App() {
   return (
     <div className="h-screen flex flex-col bg-[#262421] text-gray-100">
       {/* Header */}
-      <header className="bg-[#1d1b19] border-b border-gray-800 px-6 py-4">
-        <div className="max-w-[2000px] mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-6">
-            <h1 className="text-3xl font-bold text-white flex items-center gap-2">
-              <span className="text-4xl">♟️</span>
+      <header className="bg-[#1d1b19] border-b border-gray-800 px-4 md:px-6 py-3 md:py-4 flex-shrink-0">
+        <div className="max-w-[2400px] mx-auto flex items-center justify-between">
+          <div className="flex items-center gap-3 md:gap-6">
+            <h1 className="text-2xl md:text-3xl font-bold text-white flex items-center gap-2">
+              <span className="text-3xl md:text-4xl">♟️</span>
               <span className="hidden sm:inline">CatChess</span>
             </h1>
             
-            <nav className="hidden md:flex items-center gap-2">
+            {/* Desktop Navigation */}
+            <nav className="hidden lg:flex items-center gap-2">
               <button
-                onClick={() => setShowAnalysis(!showAnalysis)}
+                onClick={() => setShowRightPanel(!showRightPanel)}
                 className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                  showAnalysis 
+                  showRightPanel 
                     ? 'bg-blue-600 text-white shadow-lg' 
                     : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
                 }`}
+                aria-label="Toggle analysis panel"
               >
                 <span className="flex items-center gap-2">
                   🔍 Analysis
-                  {showAnalysis && <span className="text-xs">✓</span>}
+                  {showRightPanel && <span className="text-xs">✓</span>}
                 </span>
               </button>
             </nav>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 md:gap-3">
             <PGNImport />
+            
+            {/* Mobile Analysis Toggle */}
             <button
-              onClick={() => setShowSidebar(!showSidebar)}
+              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
               className="lg:hidden p-2 hover:bg-gray-700 rounded-lg transition-colors"
-              title={showSidebar ? 'Hide sidebar' : 'Show sidebar'}
+              aria-label={isMobileMenuOpen ? 'Close analysis' : 'Open analysis'}
             >
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                {showSidebar ? (
+                {isMobileMenuOpen ? (
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                 ) : (
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                )}
+              </svg>
+            </button>
+
+            {/* Left Sidebar Toggle */}
+            <button
+              onClick={() => setShowLeftSidebar(!showLeftSidebar)}
+              className="hidden md:block lg:block p-2 hover:bg-gray-700 rounded-lg transition-colors"
+              aria-label={showLeftSidebar ? 'Hide sidebar' : 'Show sidebar'}
+            >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                {showLeftSidebar ? (
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 19l-7-7 7-7m8 14l-7-7 7-7" />
+                ) : (
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 5l7 7-7 7M5 5l7 7-7 7" />
                 )}
               </svg>
             </button>
@@ -80,13 +99,15 @@ function App() {
         </div>
       </header>
 
-      {/* Main Content */}
+      {/* Main Content - Responsive Grid */}
       <div className="flex-1 flex overflow-hidden">
-        {/* Left Sidebar */}
-        <aside className={`${
-          showSidebar ? 'w-80' : 'w-0'
-        } bg-[#2b2926] border-r border-gray-800 transition-all duration-300 overflow-hidden flex-shrink-0`}>
-          <div className="h-full overflow-y-auto p-6 space-y-6">
+        {/* Left Sidebar - Hidden on mobile */}
+        <aside 
+          className={`${
+            showLeftSidebar ? 'w-64 lg:w-80' : 'w-0'
+          } hidden md:flex bg-[#2b2926] border-r border-gray-800 transition-all duration-300 overflow-hidden flex-shrink-0`}
+        >
+          <div className="h-full overflow-y-auto p-4 lg:p-6 space-y-4 lg:space-y-6">
             {/* Opening Panel */}
             <OpeningPanel />
 
@@ -149,124 +170,81 @@ function App() {
           </div>
         </aside>
 
-        {/* Center - Board */}
-        <main className="flex-1 flex flex-col items-center justify-center p-4 lg:p-8 bg-[#262421] overflow-auto">
-          <div className="w-full max-w-5xl mx-auto">
+        {/* Center - Board Area */}
+        <main className="flex-1 flex flex-col items-center justify-center p-2 md:p-4 lg:p-8 bg-[#262421] overflow-auto min-w-0">
+          <div className="w-full max-w-[90vw] md:max-w-[700px] lg:max-w-5xl mx-auto">
             {/* Chess Clock */}
             <ChessClock initialTime={600} increment={0} />
             
-            <div className="flex items-center justify-center gap-6">
+            <div className="flex items-center justify-center gap-2 md:gap-6">
               {/* Evaluation Bar */}
               <div className="hidden lg:block">
                 <EvaluationBar />
               </div>
 
-              {/* Board */}
-              <div className="flex-1 max-w-[600px]">
+              {/* Board - Responsive sizing */}
+              <div className="flex-1 max-w-full md:max-w-[600px]">
                 <ChessBoard />
               </div>
             </div>
-
-            {/* Mobile Evaluation */}
-            {currentMove && (
-              <div className="lg:hidden mt-6 bg-[#2b2926] rounded-xl p-4 shadow-lg">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <div className="text-xs text-gray-400 mb-1">Evaluation</div>
-                    <div className="text-2xl font-bold">
-                      {currentMove.mate ? (
-                        <span className="text-blue-400">M{Math.abs(currentMove.mate)}</span>
-                      ) : (
-                        <span className={currentMove.eval > 0 ? 'text-white' : 'text-gray-400'}>
-                          {currentMove.eval > 0 ? '+' : ''}{currentMove.eval.toFixed(2)}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                  {currentMove.depth && (
-                    <div className="text-right">
-                      <div className="text-xs text-gray-400 mb-1">Depth</div>
-                      <div className="text-lg font-mono text-gray-300">{currentMove.depth}</div>
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
           </div>
         </main>
 
-        {/* Right Sidebar - Moves & Analysis */}
-        <aside className="hidden lg:flex lg:w-96 bg-[#2b2926] border-l border-gray-800 flex-col">
-          {/* Move List */}
-          <div className="flex-1 overflow-hidden">
-            <MoveList />
-          </div>
+        {/* Right Sidebar - Analysis Panel */}
+        {/* Desktop: Fixed width sidebar */}
+        <aside 
+          className={`${
+            showRightPanel ? 'w-[420px] xl:w-[480px]' : 'w-0'
+          } hidden lg:flex bg-[#2b2926] border-l border-gray-800 transition-all duration-300 overflow-hidden flex-shrink-0`}
+        >
+          {showRightPanel && <AnalysisPanel />}
+        </aside>
 
-          {/* Analysis Panel */}
-          {showAnalysis && currentMove && (
-            <div className="border-t border-gray-800 p-6 space-y-4">
-              <div className="flex items-center justify-between">
-                <h3 className="text-sm font-semibold text-gray-300 uppercase tracking-wide">Analysis</h3>
-                <span className="text-xs text-gray-500 font-medium">Stockfish 17</span>
-              </div>
-
-              {/* Evaluation Display */}
-              <div className="bg-[#312e2b] rounded-xl p-4 shadow-lg">
-                <div className="flex items-center justify-between mb-3">
-                  <span className="text-xs text-gray-400 uppercase tracking-wide">Evaluation</span>
-                  {currentMove.depth && (
-                    <span className="text-xs text-gray-500 font-mono bg-gray-800 px-2 py-1 rounded">
-                      Depth {currentMove.depth}
-                    </span>
-                  )}
+        {/* Mobile/Tablet: Slide-over panel */}
+        {isMobileMenuOpen && (
+          <>
+            {/* Backdrop */}
+            <div 
+              className="lg:hidden fixed inset-0 bg-black/50 z-40"
+              onClick={() => setIsMobileMenuOpen(false)}
+              aria-hidden="true"
+            />
+            
+            {/* Slide-over Panel */}
+            <div 
+              className="lg:hidden fixed right-0 top-0 bottom-0 w-full sm:w-96 bg-[#2b2926] z-50 shadow-2xl transform transition-transform duration-300 ease-in-out"
+              role="dialog"
+              aria-modal="true"
+              aria-label="Analysis panel"
+            >
+              <div className="h-full flex flex-col">
+                {/* Close Button */}
+                <div className="flex items-center justify-between p-4 border-b border-gray-800">
+                  <h2 className="text-lg font-semibold text-white">Analysis</h2>
+                  <button
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="p-2 hover:bg-gray-700 rounded-lg transition-colors"
+                    aria-label="Close analysis panel"
+                  >
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
                 </div>
-                <div className="text-3xl font-bold mb-2">
-                  {currentMove.mate ? (
-                    <span className="text-blue-400">M{Math.abs(currentMove.mate)}</span>
-                  ) : (
-                    <span className={currentMove.eval > 0 ? 'text-white' : 'text-gray-400'}>
-                      {currentMove.eval > 0 ? '+' : ''}{currentMove.eval.toFixed(2)}
-                    </span>
-                  )}
-                </div>
-                {currentMove.bestMove && (
-                  <div className="text-xs text-gray-400">
-                    Best: <span className="text-gray-300 font-mono">{currentMove.bestMove}</span>
-                  </div>
-                )}
-              </div>
-
-              {/* Move Labels Legend */}
-              <div className="bg-[#312e2b] rounded-xl p-4 shadow-lg">
-                <h4 className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">Move Symbols</h4>
-                <div className="grid grid-cols-2 gap-2 text-xs">
-                  {[
-                    { icon: '‼', label: 'Brilliant', color: '#1abc9c' },
-                    { icon: '!', label: 'Great', color: '#3498db' },
-                    { icon: '✓', label: 'Best', color: '#95a5a6' },
-                    { icon: '⚡', label: 'Excellent', color: '#16a085' },
-                    { icon: '📖', label: 'Book', color: '#f39c12' },
-                    { icon: '○', label: 'Good', color: '#2ecc71' },
-                    { icon: '?!', label: 'Inaccurate', color: '#f1c40f' },
-                    { icon: '?', label: 'Mistake', color: '#e67e22' },
-                    { icon: '⊘', label: 'Miss', color: '#9b59b6' },
-                    { icon: '??', label: 'Blunder', color: '#e74c3c' },
-                  ].map(({ icon, label, color }) => (
-                    <div key={label} className="flex items-center gap-2">
-                      <span style={{ color }} className="font-bold">{icon}</span>
-                      <span className="text-gray-400">{label}</span>
-                    </div>
-                  ))}
+                
+                {/* Panel Content */}
+                <div className="flex-1 overflow-hidden">
+                  <AnalysisPanel />
                 </div>
               </div>
             </div>
-          )}
-        </aside>
+          </>
+        )}
       </div>
 
       {/* Bottom Control Bar */}
-      <footer className="bg-[#1d1b19] border-t border-gray-800 px-6 py-3">
-        <div className="max-w-[2000px] mx-auto flex flex-wrap items-center justify-between gap-4">
+      <footer className="bg-[#1d1b19] border-t border-gray-800 px-3 md:px-6 py-2 md:py-3 flex-shrink-0">
+        <div className="max-w-[2400px] mx-auto flex flex-wrap items-center justify-between gap-2 md:gap-4">
           {/* FEN Display */}
           <div className="hidden md:block flex-1 min-w-0">
             <div className="text-xs text-gray-500 truncate font-mono">
@@ -275,14 +253,15 @@ function App() {
           </div>
 
           {/* Playback Controls */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1 md:gap-2">
             <button
               onClick={goFirst}
               disabled={!canGoBack}
-              className="p-2 hover:bg-gray-700 rounded-lg disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+              className="p-1.5 md:p-2 hover:bg-gray-700 rounded-lg disabled:opacity-30 disabled:cursor-not-allowed transition-all"
               title="First move"
+              aria-label="Go to first move"
             >
-              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+              <svg className="w-4 h-4 md:w-5 md:h-5" fill="currentColor" viewBox="0 0 20 20">
                 <path d="M8.445 14.832A1 1 0 0010 14v-2.798l5.445 3.63A1 1 0 0017 14V6a1 1 0 00-1.555-.832L10 8.798V6a1 1 0 00-1.555-.832l-6 4a1 1 0 000 1.664l6 4z" />
               </svg>
             </button>
@@ -290,10 +269,11 @@ function App() {
             <button
               onClick={goPrevious}
               disabled={!canGoBack}
-              className="p-2 hover:bg-gray-700 rounded-lg disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+              className="p-1.5 md:p-2 hover:bg-gray-700 rounded-lg disabled:opacity-30 disabled:cursor-not-allowed transition-all"
               title="Previous"
+              aria-label="Go to previous move"
             >
-              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+              <svg className="w-4 h-4 md:w-5 md:h-5" fill="currentColor" viewBox="0 0 20 20">
                 <path d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" />
               </svg>
             </button>
@@ -301,10 +281,11 @@ function App() {
             <button
               onClick={goNext}
               disabled={!canGoForward}
-              className="p-2 hover:bg-gray-700 rounded-lg disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+              className="p-1.5 md:p-2 hover:bg-gray-700 rounded-lg disabled:opacity-30 disabled:cursor-not-allowed transition-all"
               title="Next"
+              aria-label="Go to next move"
             >
-              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+              <svg className="w-4 h-4 md:w-5 md:h-5" fill="currentColor" viewBox="0 0 20 20">
                 <path d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" />
               </svg>
             </button>
@@ -312,40 +293,43 @@ function App() {
             <button
               onClick={goLast}
               disabled={!canGoForward}
-              className="p-2 hover:bg-gray-700 rounded-lg disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+              className="p-1.5 md:p-2 hover:bg-gray-700 rounded-lg disabled:opacity-30 disabled:cursor-not-allowed transition-all"
               title="Last move"
+              aria-label="Go to last move"
             >
-              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+              <svg className="w-4 h-4 md:w-5 md:h-5" fill="currentColor" viewBox="0 0 20 20">
                 <path d="M4.555 5.168A1 1 0 003 6v8a1 1 0 001.555.832L10 11.202V14a1 1 0 001.555.832l6-4a1 1 0 000-1.664l-6-4A1 1 0 0010 5.202v2.798l-5.445-3.63z" />
               </svg>
             </button>
 
-            <div className="w-px h-6 bg-gray-700 mx-2"></div>
+            <div className="w-px h-5 md:h-6 bg-gray-700 mx-1 md:mx-2" />
 
             <button
               onClick={undoMove}
               disabled={moveHistory.length === 0}
-              className="p-2 hover:bg-gray-700 rounded-lg disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+              className="p-1.5 md:p-2 hover:bg-gray-700 rounded-lg disabled:opacity-30 disabled:cursor-not-allowed transition-all"
               title="Undo"
+              aria-label="Undo last move"
             >
-              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+              <svg className="w-4 h-4 md:w-5 md:h-5" fill="currentColor" viewBox="0 0 20 20">
                 <path fillRule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clipRule="evenodd" />
               </svg>
             </button>
             
             <button
               onClick={resetGame}
-              className="p-2 hover:bg-gray-700 rounded-lg transition-all"
+              className="p-1.5 md:p-2 hover:bg-gray-700 rounded-lg transition-all"
               title="New game"
+              aria-label="Start new game"
             >
-              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+              <svg className="w-4 h-4 md:w-5 md:h-5" fill="currentColor" viewBox="0 0 20 20">
                 <path fillRule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clipRule="evenodd" />
               </svg>
             </button>
           </div>
 
           {/* Status */}
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2 md:gap-4">
             <div className="text-xs text-gray-500 font-medium">
               Move {Math.floor((currentMoveIndex + 2) / 2)}/{Math.ceil(moveHistory.length / 2)}
             </div>
