@@ -1,16 +1,16 @@
-// Stockfish.js Web Worker - Full version from CDN
-// Uses full Stockfish WASM from CDN for better compatibility
+// Stockfish.js Web Worker - Using bundled WASM version
+// This version uses the locally bundled stockfish.wasm.js instead of CDN
 
-let stockfishInstance = null;
 let isLoading = false;
+let loaded = false;
 
 async function loadStockfish() {
-  if (stockfishInstance || isLoading) return true;
+  if (loaded || isLoading) return true;
   
   isLoading = true;
   
   try {
-    self.postMessage('info string Loading Stockfish engine...');
+    self.postMessage('info string Loading bundled Stockfish engine...');
     
     // Check if WebAssembly is supported
     const wasmSupported = typeof WebAssembly === 'object' && 
@@ -22,58 +22,22 @@ async function loadStockfish() {
       return false;
     }
     
-    // Load Stockfish from CDN (full version)
-    // Using official Stockfish.js WASM version from CDN
+    // Load bundled Stockfish WASM version (no CDN dependency)
     try {
-      importScripts('https://cdn.jsdelivr.net/npm/stockfish.js@10.0.2/stockfish.wasm.js');
-    } catch (cdnError) {
-      self.postMessage('info string WARNING: CDN load failed, trying alternative...');
-      // Try alternative CDN
-      try {
-        importScripts('https://unpkg.com/stockfish.js@10.0.2/stockfish.wasm.js');
-      } catch (altError) {
-        self.postMessage('info string ERROR: All CDN sources failed');
-        isLoading = false;
-        return false;
-      }
+      importScripts('/stockfish.wasm.js');
+    } catch (error) {
+      self.postMessage('info string ERROR: Failed to load bundled Stockfish: ' + error.message);
+      isLoading = false;
+      return false;
     }
     
-    // Wait a bit for the script to initialize
+    // Wait for the module to initialize
     await new Promise(resolve => setTimeout(resolve, 100));
     
-    // Check if Stockfish was loaded and create instance
-    if (typeof Stockfish === 'function') {
-      stockfishInstance = Stockfish();
-      stockfishInstance.onmessage = function(line) {
-        self.postMessage(line);
-      };
-      self.postMessage('info string Stockfish loaded successfully');
-      isLoading = false;
-      return true;
-    } else if (typeof STOCKFISH === 'function') {
-      stockfishInstance = STOCKFISH();
-      stockfishInstance.onmessage = function(line) {
-        self.postMessage(line);
-      };
-      self.postMessage('info string Stockfish loaded successfully');
-      isLoading = false;
-      return true;
-    } else if (typeof Module !== 'undefined' && Module.ccall) {
-      // Modern Emscripten-compiled version
-      stockfishInstance = {
-        postMessage: function(cmd) {
-          Module.ccall('uci_command', 'number', ['string'], [cmd]);
-        },
-        onmessage: function(line) {
-          self.postMessage(line);
-        }
-      };
-      self.postMessage('info string Stockfish loaded successfully (Module)');
-      isLoading = false;
-      return true;
-    } else {
-      throw new Error('Stockfish constructor not found after loading');
-    }
+    self.postMessage('info string Bundled Stockfish loaded successfully');
+    loaded = true;
+    isLoading = false;
+    return true;
   } catch (error) {
     console.error('Failed to load Stockfish:', error);
     self.postMessage('info string ERROR: Failed to load Stockfish engine: ' + error.message);
@@ -85,14 +49,19 @@ async function loadStockfish() {
 self.onmessage = async function(e) {
   const command = e.data;
 
-  if (!stockfishInstance) {
-    const loaded = await loadStockfish();
-    if (!loaded) {
+  if (!loaded) {
+    const success = await loadStockfish();
+    if (!success) {
       return;
     }
   }
 
-  if (stockfishInstance && stockfishInstance.postMessage) {
-    stockfishInstance.postMessage(command);
+  // The bundled stockfish.wasm.js uses the Module interface
+  if (typeof Module !== 'undefined' && Module.ccall) {
+    try {
+      Module.ccall('uci_command', 'number', ['string'], [command]);
+    } catch (error) {
+      self.postMessage('info string ERROR executing command: ' + error.message);
+    }
   }
 };
