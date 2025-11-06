@@ -1,6 +1,6 @@
 import { ChessEngine, EngineResult } from './engine';
 
-export type MaiaLevel = 1100 | 1300 | 1500 | 1700 | 1900;
+type MaiaLevel = 1100 | 1300 | 1500 | 1700 | 1900;
 
 /**
  * Maia Chess Engine Integration
