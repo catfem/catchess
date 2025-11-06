@@ -44,27 +44,52 @@ class MaiaEngine implements ChessEngine {
     if (this.ready && this.worker) return;
 
     try {
-      // Try to load LC0 worker if available
-      // Note: This requires lc0.js to be built and placed in public/
-      try {
-        this.worker = new Worker('/lc0.js');
-        await this.initLC0Worker();
-        this.useStockfishFallback = false;
-      } catch (lc0Error) {
-        console.warn('LC0 not available, falling back to Stockfish simulation:', lc0Error);
+      // Check if LC0 is available before attempting to load it
+      // This prevents browser MIME type errors when lc0.js doesn't exist
+      const lc0Available = await this.checkLC0Availability();
+      
+      if (lc0Available) {
+        // Try to load LC0 worker with Maia weights
+        try {
+          this.worker = new Worker('/lc0.js');
+          await this.initLC0Worker();
+          this.useStockfishFallback = false;
+          console.log(`✓ Maia ${this.maiaLevel} initialized with LC0 engine and Maia weights`);
+        } catch (lc0Error) {
+          console.warn('⚠ LC0 worker failed to initialize:', lc0Error);
+          this.useStockfishFallback = true;
+          this.worker = new Worker('/stockfish.js');
+          await this.initStockfishFallback();
+          console.log(`✓ Maia ${this.maiaLevel} using Stockfish fallback (Skill ${this.ratingToStockfishSkill(this.maiaLevel)})`);
+        }
+      } else {
+        // LC0 not available, use Stockfish fallback
+        console.info(`ℹ LC0 not available (lc0.js not found). Using Stockfish to simulate Maia ${this.maiaLevel} behavior.`);
         this.useStockfishFallback = true;
-        // Use Stockfish worker with human-like parameters
         this.worker = new Worker('/stockfish.js');
         await this.initStockfishFallback();
+        console.log(`✓ Maia ${this.maiaLevel} using Stockfish fallback (Skill ${this.ratingToStockfishSkill(this.maiaLevel)})`);
       }
       
       this.ready = true;
-      const engineType = this.useStockfishFallback ? 'Stockfish (simulating human play)' : 'LC0 with Maia weights';
-      console.log(`Maia ${this.maiaLevel} engine ready using ${engineType}`);
     } catch (error) {
-      this.loadingError = `Failed to load Maia ${this.maiaLevel} engine. LC0 with Maia weights not available. See MAIA_SETUP.md for setup instructions.`;
-      console.error('Maia loading error:', error);
+      this.loadingError = `Failed to load Maia ${this.maiaLevel} engine. See console for details.`;
+      console.error('Maia engine initialization error:', error);
       throw error;
+    }
+  }
+
+  /**
+   * Check if LC0 is available by attempting to fetch lc0.js
+   * This prevents browser MIME type errors when the file doesn't exist
+   */
+  private async checkLC0Availability(): Promise<boolean> {
+    try {
+      const response = await fetch('/lc0.js', { method: 'HEAD' });
+      const contentType = response.headers.get('content-type');
+      return response.ok && (contentType?.includes('javascript') ?? false);
+    } catch {
+      return false;
     }
   }
 
