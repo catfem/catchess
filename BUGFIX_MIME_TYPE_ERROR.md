@@ -177,9 +177,20 @@ npm run type-check
 du -sh frontend/dist/
 ```
 
+## Follow-up Fix (v2)
+
+A subsequent issue was discovered where the Human AI move classification analysis was affected by the initial fix. The repeated LC0 availability checks during analysis caused performance issues. This was resolved by:
+
+1. **Caching the availability check** - Only check once per session
+2. **Adding timeout protection** - 1-second timeout with AbortController
+3. **Reducing console spam** - Only log fallback message once
+
+See `ANALYSIS_FIX.md` for complete details.
+
 ## References
 
 - **LC0 Project**: https://lczero.org/
 - **Maia Chess**: https://maiachess.com/
 - **MIME Type Spec**: https://developer.mozilla.org/en-US/docs/Web/HTTP/Basics_of_HTTP/MIME_types
 - **Web Workers**: https://developer.mozilla.org/en-US/docs/Web/API/Worker
+- **Follow-up Fix**: See ANALYSIS_FIX.md

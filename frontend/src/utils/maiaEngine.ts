@@ -27,6 +27,8 @@ class MaiaEngine implements ChessEngine {
   private worker: Worker | null = null;
   private currentCallback: ((data: string) => void) | null = null;
   private useStockfishFallback: boolean = false;
+  private lc0AvailabilityChecked: boolean = false;
+  private lc0Available: boolean = false;
 
   constructor(level: MaiaLevel = 1500) {
     this.maiaLevel = level;
@@ -44,11 +46,14 @@ class MaiaEngine implements ChessEngine {
     if (this.ready && this.worker) return;
 
     try {
-      // Check if LC0 is available before attempting to load it
+      // Check if LC0 is available (cached after first check)
       // This prevents browser MIME type errors when lc0.js doesn't exist
-      const lc0Available = await this.checkLC0Availability();
+      if (!this.lc0AvailabilityChecked) {
+        this.lc0Available = await this.checkLC0Availability();
+        this.lc0AvailabilityChecked = true;
+      }
       
-      if (lc0Available) {
+      if (this.lc0Available) {
         // Try to load LC0 worker with Maia weights
         try {
           this.worker = new Worker('/lc0.js');
@@ -64,11 +69,12 @@ class MaiaEngine implements ChessEngine {
         }
       } else {
         // LC0 not available, use Stockfish fallback
-        console.info(`ℹ LC0 not available (lc0.js not found). Using Stockfish to simulate Maia ${this.maiaLevel} behavior.`);
+        if (!this.lc0AvailabilityChecked) {
+          console.info(`ℹ LC0 not available (lc0.js not found). Using Stockfish to simulate Maia ${this.maiaLevel} behavior.`);
+        }
         this.useStockfishFallback = true;
         this.worker = new Worker('/stockfish.js');
         await this.initStockfishFallback();
-        console.log(`✓ Maia ${this.maiaLevel} using Stockfish fallback (Skill ${this.ratingToStockfishSkill(this.maiaLevel)})`);
       }
       
       this.ready = true;
@@ -82,13 +88,29 @@ class MaiaEngine implements ChessEngine {
   /**
    * Check if LC0 is available by attempting to fetch lc0.js
    * This prevents browser MIME type errors when the file doesn't exist
+   * Uses a quick timeout to avoid blocking analysis
    */
   private async checkLC0Availability(): Promise<boolean> {
     try {
-      const response = await fetch('/lc0.js', { method: 'HEAD' });
+      // Use AbortController with timeout to prevent hanging
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 1000); // 1 second timeout
+      
+      const response = await fetch('/lc0.js', { 
+        method: 'HEAD',
+        signal: controller.signal,
+        cache: 'force-cache' // Use cached response if available
+      });
+      
+      clearTimeout(timeoutId);
+      
+      // Check if response is OK and has JavaScript MIME type
+      if (!response.ok) return false;
+      
       const contentType = response.headers.get('content-type');
-      return response.ok && (contentType?.includes('javascript') ?? false);
-    } catch {
+      return contentType?.includes('javascript') ?? false;
+    } catch (error) {
+      // Timeout, network error, or CORS error - assume LC0 not available
       return false;
     }
   }

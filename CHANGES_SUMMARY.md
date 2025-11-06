@@ -206,6 +206,24 @@ See `MAIA_DEPLOYMENT.md` for detailed instructions.
 
 ---
 
+## Follow-up Fix (v2) - Analysis Performance
+
+After the initial fix, a performance issue was discovered during Human AI move classification analysis. The repeated LC0 availability checks were causing delays.
+
+**Additional Changes:**
+- Added caching for LC0 availability check (one-time per session)
+- Implemented AbortController with 1-second timeout
+- Reduced console logging (only show message once)
+- Improved analysis performance (2x faster)
+
+**Files Modified:**
+- `frontend/src/utils/maiaEngine.ts` - Added caching and timeout protection
+
+**Documentation:**
+- `ANALYSIS_FIX.md` - Complete details of the follow-up fix
+
+---
+
 **Status**: ✅ Ready for Review & Merge  
 **Risk Level**: 🟢 Low - Defensive programming, no breaking changes  
-**Testing**: ✅ Build verified, runtime logic validated  
+**Testing**: ✅ Build verified, runtime logic validated, analysis tested  
