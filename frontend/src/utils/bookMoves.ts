@@ -20,14 +20,10 @@ class BookMovesDetector {
   private loading: boolean = false;
   private loadPromise: Promise<void> | null = null;
   private positionCache: Map<string, boolean> = new Map(); // Cache for faster lookups
-  
-  // CDN URL for eco.json database from https://github.com/hayatbiralem/eco.json
-  private readonly ECO_CDN_URL = 'https://cdn.jsdelivr.net/npm/eco-json@1.0.0/dist/eco_interpolated.json';
 
   /**
-   * Load ECO database from CDN
-   * Uses cdn.jsdelivr.net to serve eco.json from https://github.com/hayatbiralem/eco.json
-   * This provides reliable, fast delivery without depending on local server configuration
+   * Load ECO database from local files
+   * ECO database files are bundled with the app for reliable offline access
    */
   async loadDatabase(): Promise<void> {
     if (Object.keys(this.ecoData).length > 0) {
@@ -46,22 +42,23 @@ class BookMovesDetector {
 
   private async loadDatabaseInternal(): Promise<void> {
     try {
-      console.log('Loading ECO opening book database from CDN...');
+      console.log('Loading ECO opening book database...');
       
-      // Use jsdelivr CDN to serve eco_interpolated.json
-      // This is the same database used by eco.json project on GitHub
-      const response = await fetch(this.ECO_CDN_URL);
+      // Try to load the complete interpolated database first (faster, single file)
+      const response = await fetch('/eco_interpolated.json');
       
-      if (!response.ok) {
-        throw new Error(`Failed to load ECO database from CDN: ${response.statusText}`);
+      if (response.ok) {
+        this.ecoData = await response.json();
+        console.log(`✓ ECO database loaded: ${Object.keys(this.ecoData).length} positions`);
+      } else {
+        // Fallback to chunked files if the interpolated version isn't available
+        console.log('Loading ECO database from chunks...');
+        await this.loadLocalChunks();
       }
-
-      this.ecoData = await response.json();
-      console.log(`✓ ECO database loaded from CDN: ${Object.keys(this.ecoData).length} positions`);
     } catch (error) {
-      console.error('Failed to load ECO database from CDN:', error);
-      // Fallback: try loading from local files
-      console.log('Attempting fallback to local ECO database chunks...');
+      console.error('Failed to load ECO database:', error);
+      // Try fallback to chunked files
+      console.log('Attempting fallback to ECO database chunks...');
       await this.loadLocalChunks();
     } finally {
       this.loading = false;
@@ -70,7 +67,7 @@ class BookMovesDetector {
 
   /**
    * Fallback method to load ECO database from local chunked files
-   * Used if CDN is unavailable
+   * Used if the complete interpolated file is unavailable
    */
   private async loadLocalChunks(): Promise<void> {
     const categories = ['A', 'B', 'C', 'D', 'E'];

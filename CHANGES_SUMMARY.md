@@ -237,6 +237,22 @@ A deprecated meta tag was identified and updated to use modern web standards.
 **Documentation:**
 - `PWA_META_TAG_FIX.md` - Details about the meta tag update
 
+## Additional Fix - ECO Database Loading Error
+
+A 404 error was occurring when trying to load the ECO (Encyclopedia of Chess Openings) database from a non-existent CDN.
+
+**Changes:**
+- Removed non-existent CDN URL that was causing 404 errors
+- Changed to load ECO database from local bundled files first
+- Kept fallback to chunked files if needed
+- Cleaner console output with no unnecessary errors
+
+**Files Modified:**
+- `frontend/src/utils/bookMoves.ts` - Updated database loading strategy
+
+**Documentation:**
+- `ECO_DATABASE_FIX.md` - Details about the ECO database fix
+
 ---
 
 **Status**: ✅ Ready for Review & Merge  
