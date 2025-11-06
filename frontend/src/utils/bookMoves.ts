@@ -42,32 +42,29 @@ class BookMovesDetector {
 
   private async loadDatabaseInternal(): Promise<void> {
     try {
-      console.log('Loading ECO opening book database...');
+      console.log('📚 Loading ECO opening book database from local files...');
       
-      // Try to load the complete interpolated database first (faster, single file)
-      const response = await fetch('/eco_interpolated.json');
+      // Always use local chunked files (ecoA.json through ecoE.json)
+      // This ensures reliable offline access and avoids CDN dependencies
+      await this.loadLocalChunks();
       
-      if (response.ok) {
-        this.ecoData = await response.json();
-        console.log(`✓ ECO database loaded: ${Object.keys(this.ecoData).length} positions`);
+      const totalPositions = Object.keys(this.ecoData).length;
+      if (totalPositions > 0) {
+        console.log(`✓ ECO database loaded successfully: ${totalPositions} positions`);
       } else {
-        // Fallback to chunked files if the interpolated version isn't available
-        console.log('Loading ECO database from chunks...');
-        await this.loadLocalChunks();
+        console.error('⚠️ ECO database loaded but contains no positions');
       }
     } catch (error) {
-      console.error('Failed to load ECO database:', error);
-      // Try fallback to chunked files
-      console.log('Attempting fallback to ECO database chunks...');
-      await this.loadLocalChunks();
+      console.error('❌ Failed to load ECO database:', error);
+      throw error;
     } finally {
       this.loading = false;
     }
   }
 
   /**
-   * Fallback method to load ECO database from local chunked files
-   * Used if the complete interpolated file is unavailable
+   * Load ECO database from local chunked files
+   * Loads ecoA.json through ecoE.json from the public directory
    */
   private async loadLocalChunks(): Promise<void> {
     const categories = ['A', 'B', 'C', 'D', 'E'];
@@ -79,15 +76,15 @@ class BookMovesDetector {
     try {
       const response = await fetch(`/eco${category}.json`);
       if (!response.ok) {
-        console.warn(`Failed to load local ECO chunk ${category}: ${response.statusText}`);
+        console.warn(`⚠️ Failed to load ECO chunk ${category}: ${response.statusText}`);
         return;
       }
       const chunkData: EcoData = await response.json();
       Object.assign(this.ecoData, chunkData);
-      console.log(`✓ Local ECO chunk ${category} loaded: ${Object.keys(chunkData).length} positions`);
+      console.log(`  ✓ ECO chunk ${category}: ${Object.keys(chunkData).length} positions`);
     } catch (error) {
-      console.warn(`Failed to load local ECO chunk ${category}:`, error);
-      // Continue with other chunks
+      console.warn(`⚠️ Failed to load ECO chunk ${category}:`, error);
+      // Continue with other chunks even if one fails
     }
   }
 
